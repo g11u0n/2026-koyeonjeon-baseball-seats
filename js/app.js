@@ -25,12 +25,16 @@ function allBlockIds() {
 }
 function isKuBlock(id) { return Boolean(state.blocks[id]) || alumniBlocks.has(id); }
 function drawField(root) {
-  root.append(makeSvg('path', { d: 'M235 530 Q450 215 665 530 L600 665 Q450 755 300 665 Z', class: 'field' }));
-  root.append(makeSvg('path', { d: 'M450 515 L535 600 L450 685 L365 600 Z', class: 'diamond' }));
-  root.append(makeSvg('path', { d: 'M450 515 L535 600 L450 685 L365 600 Z M450 685 L450 515', class: 'diamond-line' }));
-  const home = makeSvg('text', { x: 450, y: 720, class: 'map-decoration', 'text-anchor': 'middle' }); home.textContent = '홈'; root.append(home);
-  const first = makeSvg('text', { x: 620, y: 555, class: 'map-decoration', 'text-anchor': 'middle' }); first.textContent = '1루'; root.append(first);
-  const third = makeSvg('text', { x: 280, y: 555, class: 'map-decoration', 'text-anchor': 'middle' }); third.textContent = '3루'; root.append(third);
+  const field = makeSvg('g', { class: 'field-art', transform: 'translate(450 455) scale(.35) translate(-846 -613)' });
+  field.append(makeSvg('path', { d: 'M1361.96 531.751C1357.7 517.3 1353.15 503.292 1348.36 489.727C1345.98 481.676 1341.11 467.064 1332.38 448.427C1238.34 225.909 1063 132.281 846.026 132.281C603.695 132.281 413.252 249.055 330.047 531.791L460.471 609.358L547.42 755.959L527.333 790.657C547.098 846.689 589.486 925.022 640.689 984.274C676.153 1025.29 744.464 1095.01 846.026 1095.01C947.587 1095.01 1015.9 1025.29 1051.36 984.274C1102.57 925.022 1144.99 846.689 1164.72 790.657L1144.63 755.959L1231.58 609.358L1362 531.791Z', class: 'field' }));
+  field.append(makeSvg('path', { d: 'M845.268 930.495L560.066 645.304C560.066 645.304 630.189 449.514 845.268 449.514C1060.35 449.514 1131.88 645.585 1131.88 645.585L845.268 930.495Z', class: 'infield-dirt' }));
+  field.append(makeSvg('circle', { cx: 844.731, cy: 893.154, r: 46.733, class: 'infield-dirt' }));
+  field.append(makeSvg('path', { d: 'M961.493 738.565C961.493 746.253 964.19 753.337 968.699 758.892L872.25 855.338C864.521 849.703 855.021 846.402 844.756 846.402C834.491 846.402 824.951 849.703 817.262 855.338L720.129 758.208C724.315 752.774 726.811 745.931 726.811 738.524C726.811 731.118 724.315 724.315 720.129 718.841L823.059 615.914C828.775 621.107 836.383 624.287 844.716 624.287C853.048 624.287 860.656 621.107 866.373 615.914L968.699 718.237C964.19 723.792 961.493 730.836 961.493 738.565Z', class: 'infield-grass' }));
+  field.append(makeSvg('circle', { cx: 844.756, cy: 738.524, r: 32.3, class: 'infield-dirt' }));
+  field.append(makeSvg('path', { d: 'M870.329 883.848L1324.97 430.348M816.89 884.327L367.531 434.943', class: 'foul-line' }));
+  field.append(makeSvg('path', { d: 'M855.693 580.208L844.734 569.25L833.776 580.208L844.734 591.166ZM695.881 739.46L684.923 728.502L673.964 739.46L684.923 750.418ZM1013.79 738.435L1002.83 727.477L991.876 738.435L1002.83 749.393Z', class: 'base' }));
+  field.append(makeSvg('path', { d: 'M850.558 904.547L843.594 911.229L836.671 904.547L836.671 888.084L850.558 888.084Z', class: 'base' }));
+  root.append(field);
 }
 function addBlock(root, id, inner, outer, start, end) {
   const ku = isKuBlock(id), alumni = alumniBlocks.has(id), data = state.blocks[id];
@@ -48,10 +52,10 @@ function addBlock(root, id, inner, outer, start, end) {
 function renderMap() {
   const root = $('#seat-map'); root.replaceChildren(); const ids = allBlockIds();
   const configs = { 4: { inner: 342, outer: 405, start: 198, end: 342 }, 3: { inner: 335, outer: 398, start: -12, end: 192 }, 2: { inner: 270, outer: 329, start: -18, end: 198 }, 1: { inner: 205, outer: 264, start: -25, end: 205 } };
-  for (const level of [4, 3, 2, 1]) { const config = configs[level], span = (config.end - config.start) / ids[level].length; ids[level].forEach((id, index) => addBlock(root, id, config.inner, config.outer, config.start + index * span + .45, config.start + (index + 1) * span - .45)); }
   drawField(root);
-  root.append(makeSvg('rect', { x: 395, y: 42, width: 110, height: 44, rx: 4, class: 'scoreboard' }));
-  const boardLabel = makeSvg('text', { x: 450, y: 68, class: 'scoreboard-label', 'text-anchor': 'middle' }); boardLabel.textContent = '전광판'; root.append(boardLabel);
+  for (const level of [4, 3, 2, 1]) { const config = configs[level], span = (config.end - config.start) / ids[level].length; ids[level].forEach((id, index) => addBlock(root, id, config.inner, config.outer, config.start + index * span + .45, config.start + (index + 1) * span - .45)); }
+  root.append(makeSvg('rect', { x: 402, y: 7, width: 96, height: 30, rx: 4, class: 'scoreboard' }));
+  const boardLabel = makeSvg('text', { x: 450, y: 27, class: 'scoreboard-label', 'text-anchor': 'middle' }); boardLabel.textContent = '전광판'; root.append(boardLabel);
   updateMapState();
 }
 function updateMapState() {
@@ -80,7 +84,7 @@ function bindCopyLink(id) {
 }
 function renderAlumniBlock(id, updateUrl) {
   state.block = id; const container = $('#block-detail'); container.className = 'detail-card';
-  container.innerHTML = `<div class="detail-title"><div><h3>${id} BLOCK</h3><p>4층 · 교우회석</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div><div class="alumni-card"><strong>교우회석</strong><p>412–415구역은 교우회석으로 배정된 고려대학교 구역입니다.</p></div>`;
+  container.innerHTML = `<div class="detail-title"><div><h3>${id} BLOCK</h3><p>4층 · 교우회석</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div><div class="alumni-card"><strong>교우회석</strong><p>412–415구역은 고려대학교 교우회석입니다.</p></div>`;
   bindCopyLink(id); updateMapState(); if (updateUrl) paramUrl('block', id); container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function selectBlock(id, updateUrl = true) {
