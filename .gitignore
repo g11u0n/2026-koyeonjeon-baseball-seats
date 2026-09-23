@@ -1,0 +1,8 @@
+# Private source material and intermediate workbook extract
+경기장 백터.svg
+*.xlsx
+private-source/
+source-assets/
+
+# Local tooling
+node_modules/

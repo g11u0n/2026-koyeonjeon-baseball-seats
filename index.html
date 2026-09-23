@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f3ed">
+  <meta name="description" content="2026 정기 고연전 잠실야구장 야구 경기 고려대학교 좌석 배정 안내">
+  <title>2026 정기 고연전 야구 좌석 안내</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="./js/app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="brand"><img src="./assets/korea-university-logo.png" alt="고려대학교"><span>2026 정기 고연전</span></div>
+      <span class="header-label">잠실야구장 · 야구 경기</span>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div class="eyebrow"><span class="eyebrow-line"></span> KOREA UNIVERSITY · BASEBALL</div>
+        <h1 id="page-title">잠실야구장<br><em>좌석 찾기</em></h1>
+        <p class="intro-copy">소속 단위를 검색하거나 경기장 구역을 선택해 배정 좌석을 확인하세요.</p>
+        <div class="search-wrap">
+          <label for="unit-search">단위 검색</label>
+          <div class="search-box"><span aria-hidden="true" class="search-icon">⌕</span><input id="unit-search" type="search" autocomplete="off" placeholder="단과대학 또는 단체명을 검색하세요" aria-controls="search-results" aria-expanded="false"><kbd>⌕</kbd></div>
+          <div id="search-results" class="search-results" role="listbox" hidden></div>
+        </div>
+        <div id="selected-unit" class="selected-unit" hidden></div>
+      </section>
+      <div id="data-alert" class="data-alert" hidden role="status"></div>
+      <section class="map-section" aria-labelledby="map-heading">
+        <div class="section-heading"><div><span class="section-index">01 / 경기장 안내</span><h2 id="map-heading">잠실야구장 전체 구역도</h2><p>빨간색 구역을 누르면 고려대학교 배정 단위와 좌석을 볼 수 있습니다.</p></div><span class="map-key"><i></i> 고려대학교 배정 구역</span></div>
+        <div class="map-card">
+          <div class="map-topline"><span>잠실야구장 · 전체 구역</span><span id="map-status">고려대학교 48개 구역</span></div>
+          <div class="map-viewport" id="map-viewport"><svg id="seat-map" viewBox="0 0 900 900" role="img" aria-label="잠실야구장 전체 좌석 배치도. 빨간색 고려대학교 구역을 선택할 수 있습니다."></svg></div>
+          <div class="map-bottomline"><span id="map-hint">좌석 구역을 선택하세요</span><div class="zoom-controls"><button type="button" id="zoom-out" aria-label="축소">−</button><button type="button" id="zoom-in" aria-label="확대">+</button><button type="button" id="zoom-reset">전체 보기</button></div></div>
+        </div>
+        <div class="block-quick" aria-label="구역 바로 선택"><span>구역 바로 찾기</span><div id="block-list" class="block-list"></div></div>
+      </section>
+      <section class="detail-section" aria-labelledby="detail-heading"><div class="section-heading"><div><span class="section-index">02 / 배정 상세</span><h2 id="detail-heading">선택한 구역</h2></div></div><div id="block-detail" class="detail-placeholder">위 지도에서 구역을 선택하면 배정 정보를 볼 수 있습니다.</div></section>
+      <section class="notice"><h2>이용 안내</h2><p>이 페이지는 배정 결과를 조회하는 정적 안내 페이지입니다. 좌석 예약이나 변경 기능은 제공하지 않습니다. 좌석 수와 단위는 각 블록 상세 시트의 실제 색상 셀을 기준으로 표시합니다.</p></section>
+    </main>
+    <footer><span>2026 정기 고연전 · 잠실야구장 야구 좌석 안내</span><span>고려대학교 3루측 배정 구역</span></footer>
+  </div>
+</body>
+</html>
