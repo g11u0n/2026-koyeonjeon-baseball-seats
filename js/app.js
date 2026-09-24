@@ -73,10 +73,7 @@ function renderBlockButtons() {
 function selectUnit(name, updateUrl = true) {
   if (!state.units[name]) return; state.unit = name; state.block = null;
   $('#unit-search').value = name; $('#search-results').hidden = true; $('#unit-search').setAttribute('aria-expanded', 'false');
-  const unit = state.units[name], box = $('#selected-unit'); box.hidden = false;
-  const assignments = unit.assignments.map((item) => `<button type="button" data-block="${item.block}">${item.block}구역 · ${escapeHtml(rangeText(item.ranges))}번 · ${fmt(item.seats)}석</button>`).join('');
-  box.innerHTML = `<div class="unit-top"><div><span class="section-index">선택한 단위</span><h2>${escapeHtml(name)}</h2></div><strong>${fmt(unit.derivedSeats)}석</strong></div><p>상세 좌석 색상 기준 · 배정 구역 ${unit.assignments.length}곳</p><div class="unit-links">${assignments || '상세 좌석 시트에 배정된 좌석이 없습니다.'}</div>`;
-  box.querySelectorAll('button[data-block]').forEach((button) => { button.onclick = () => selectBlock(button.dataset.block, true); });
+  const unit = state.units[name];
   updateMapState();
   if (updateUrl) paramUrl('unit', name);
   const firstBlock = unit.assignments[0]?.block;
@@ -111,7 +108,7 @@ function renderSeats(id, container) {
   const minRow = Math.min(...list.map((seat) => seat.row)), maxRow = Math.max(...list.map((seat) => seat.row)), minCol = Math.min(...list.map((seat) => seat.column)), maxCol = Math.max(...list.map((seat) => seat.column));
   const lookup = new Map(list.map((seat) => [`${seat.row}:${seat.column}`, seat])), legend = new Map(); for (const seat of list) if (!seat.unavailable && seat.unit) legend.set(seat.unit, seat.color);
   const legendHtml = [...legend.entries()].map(([unit, color]) => `<span><i style="background:${color}"></i>${escapeHtml(unit)}</span>`).join('') + (list.some((seat) => seat.unavailable) ? '<span><i class="unavailable"></i>불용 좌석</span>' : '');
-  container.innerHTML = `<div class="seat-grid-heading"><p>전체 좌석 배치도를 확대해 좌석 번호를 확인하세요.</p><div class="seat-zoom-controls" aria-label="좌석 배치도 확대 축소"><button type="button" data-seat-zoom="out" aria-label="좌석 배치도 축소">−</button><button type="button" data-seat-zoom="in" aria-label="좌석 배치도 확대">+</button><button type="button" data-seat-zoom="fit">전체 보기</button></div></div><div class="seat-legend">${legendHtml}</div><div class="seat-grid-wrap"><div class="seat-grid-stage"><div class="seat-grid"></div></div></div>`;
+  container.innerHTML = `<div class="seat-grid-heading"><p>두 손가락으로 확대·축소하고, 확대 후 끌어서 좌석 번호를 확인하세요.</p></div><div class="seat-legend">${legendHtml}</div><div class="seat-grid-wrap" tabindex="0" aria-label="손가락으로 확대·축소할 수 있는 좌석 배치도"><div class="seat-grid-stage"><div class="seat-grid"></div></div></div>`;
   const grid = container.querySelector('.seat-grid'); grid.style.gridTemplateColumns = `36px repeat(${maxCol - minCol + 1},29px)`; const fragment = document.createDocumentFragment();
   for (let row = minRow; row <= maxRow; row++) {
     const label = document.createElement('div'); label.className = 'seat-row-label'; label.textContent = `${row - minRow + 1}열`; fragment.append(label);
@@ -130,20 +127,69 @@ function setupSeatZoom(container) {
   let scale = 1, fitScale = 1;
   const applyScale = () => { stage.style.width = `${naturalWidth * scale}px`; stage.style.height = `${naturalHeight * scale}px`; grid.style.transform = `scale(${scale})`; };
   const fit = () => {
-    const availableWidth = viewport.clientWidth - 36, availableHeight = Math.min(window.innerHeight * .58, 520);
+    const availableWidth = viewport.clientWidth - 36, availableHeight = viewport.clientHeight - 36;
     fitScale = Math.min(1, availableWidth / naturalWidth, availableHeight / naturalHeight);
     scale = fitScale; applyScale(); viewport.scrollTo(0, 0);
   };
-  container.querySelectorAll('[data-seat-zoom]').forEach((button) => { button.onclick = () => {
-    if (button.dataset.seatZoom === 'fit') { fit(); return; }
-    const next = button.dataset.seatZoom === 'in' ? scale * 1.5 : scale / 1.5;
-    scale = Math.max(fitScale, Math.min(2.5, next)); applyScale();
-  }; });
+  const zoomAt = (next, clientX, clientY) => {
+    const newScale = Math.max(fitScale, Math.min(2.5, next));
+    if (newScale === scale) return;
+    const rect = viewport.getBoundingClientRect(), padding = 18;
+    const x = clientX - rect.left, y = clientY - rect.top;
+    const contentX = (viewport.scrollLeft + x - padding) / scale;
+    const contentY = (viewport.scrollTop + y - padding) / scale;
+    scale = newScale; applyScale();
+    viewport.scrollLeft = contentX * scale + padding - x;
+    viewport.scrollTop = contentY * scale + padding - y;
+  };
+  const pointers = new Map(); let pinchDistance = 0;
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  viewport.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    viewport.setPointerCapture(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.size === 2) pinchDistance = distance(...pointers.values());
+    viewport.classList.add('dragging');
+  });
+  viewport.addEventListener('pointermove', (event) => {
+    if (!pointers.has(event.pointerId)) return;
+    const previous = pointers.get(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()], nextDistance = distance(a, b);
+      if (pinchDistance) zoomAt(scale * nextDistance / pinchDistance, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      pinchDistance = nextDistance;
+    } else {
+      const dx = event.clientX - previous.x, dy = event.clientY - previous.y;
+      if (scale > fitScale + .001) { viewport.scrollLeft -= dx; viewport.scrollTop -= dy; }
+      else if (event.pointerType === 'touch') window.scrollBy(0, -dy);
+    }
+  });
+  const finish = (event) => {
+    pointers.delete(event.pointerId); pinchDistance = 0;
+    if (!pointers.size) viewport.classList.remove('dragging');
+  };
+  viewport.addEventListener('pointerup', finish);
+  viewport.addEventListener('pointercancel', finish);
+  viewport.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    zoomAt(scale * Math.exp(-event.deltaY * .002), event.clientX, event.clientY);
+  }, { passive: false });
+  viewport.addEventListener('keydown', (event) => {
+    if (!['+', '=', '-', '0'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === '0') { fit(); return; }
+    const rect = viewport.getBoundingClientRect();
+    zoomAt(scale * (event.key === '-' ? 1 / 1.5 : 1.5), rect.left + rect.width / 2, rect.top + rect.height / 2);
+  });
   fit();
-  let observedWidth = viewport.clientWidth;
+  let observedWidth = viewport.getBoundingClientRect().width, observedHeight = viewport.getBoundingClientRect().height;
   const resize = new ResizeObserver(() => {
     if (!container.isConnected) { resize.disconnect(); return; }
-    if (viewport.clientWidth !== observedWidth) { observedWidth = viewport.clientWidth; if (scale === fitScale) fit(); }
+    const rect = viewport.getBoundingClientRect();
+    if (rect.width !== observedWidth || rect.height !== observedHeight) {
+      observedWidth = rect.width; observedHeight = rect.height; fit();
+    }
   });
   resize.observe(viewport);
 }
