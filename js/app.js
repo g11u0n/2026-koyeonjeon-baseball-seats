@@ -77,7 +77,11 @@ function selectUnit(name, updateUrl = true) {
   const assignments = unit.assignments.map((item) => `<button type="button" data-block="${item.block}">${item.block}구역 · ${escapeHtml(rangeText(item.ranges))}번 · ${fmt(item.seats)}석</button>`).join('');
   box.innerHTML = `<div class="unit-top"><div><span class="section-index">선택한 단위</span><h2>${escapeHtml(name)}</h2></div><strong>${fmt(unit.derivedSeats)}석</strong></div><p>상세 좌석 색상 기준 · 배정 구역 ${unit.assignments.length}곳</p><div class="unit-links">${assignments || '상세 좌석 시트에 배정된 좌석이 없습니다.'}</div>`;
   box.querySelectorAll('button[data-block]').forEach((button) => { button.onclick = () => selectBlock(button.dataset.block, true); });
-  $('#block-detail').className = 'detail-placeholder'; $('#block-detail').textContent = '강조된 구역을 누르면 좌석 상세를 볼 수 있습니다.'; updateMapState(); if (updateUrl) paramUrl('unit', name);
+  updateMapState();
+  if (updateUrl) paramUrl('unit', name);
+  const firstBlock = unit.assignments[0]?.block;
+  if (firstBlock) selectBlock(firstBlock, false);
+  else { $('#block-detail').className = 'detail-placeholder'; $('#block-detail').textContent = '상세 좌석 시트에 배정된 좌석이 없습니다.'; }
 }
 function bindCopyLink(id) {
   $('#copy-link').onclick = async () => { const url = new URL(location.href); url.search = ''; url.searchParams.set('block', id); try { await navigator.clipboard.writeText(url.href); $('#copy-link').textContent = '복사됨'; } catch { prompt('구역 링크', url.href); } };
@@ -91,9 +95,14 @@ function selectBlock(id, updateUrl = true) {
   if (alumniBlocks.has(id)) { renderAlumniBlock(id, updateUrl); return; }
   if (!state.blocks[id]) return; state.block = id; const block = state.blocks[id];
   const allocation = block.units.map((unit) => { const found = state.units[unit.name]?.assignments.find((item) => item.block === id), ranges = found ? rangeText(found.ranges) : ''; return `<div class="assignment"><span>${escapeHtml(unit.name)}<small>${escapeHtml(ranges)}번</small></span><strong>${fmt(unit.seats)}석</strong></div>`; }).join('');
+  const unitAssignments = state.unit ? state.units[state.unit]?.assignments || [] : [];
+  const unitNav = unitAssignments.some((item) => item.block === id) && unitAssignments.length > 1
+    ? `<div class="unit-block-nav" aria-label="${escapeHtml(state.unit)} 배정 구역"><strong>${escapeHtml(state.unit)} 배정 구역</strong><div>${unitAssignments.map((item) => `<button type="button" data-unit-block="${item.block}"${item.block === id ? ' class="active" aria-current="true"' : ''}>${item.block}구역 · ${fmt(item.seats)}석</button>`).join('')}</div></div>`
+    : '';
   const container = $('#block-detail'); container.className = 'detail-card';
-  container.innerHTML = `<div class="detail-title"><div><h3>${id} BLOCK</h3><p>${block.level}층 · ${escapeHtml(block.note || '고려대학교 배정 구역')}</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div><div class="stats"><div class="stat"><span>상세 좌석 합계</span><strong>${fmt(block.totalSeats)}</strong></div><div class="stat"><span>배정 좌석</span><strong>${fmt(block.assignedSeats)}</strong></div><div class="stat"><span>불용 좌석</span><strong>${fmt(block.unavailableSeats)}</strong></div></div><h4>배정 단위</h4><div class="assignment-list">${allocation}</div><div id="seat-detail" class="seat-detail"></div>`;
+  container.innerHTML = `<div class="detail-title"><div><h3>${id} BLOCK</h3><p>${block.level}층 · ${escapeHtml(block.note || '고려대학교 배정 구역')}</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div>${unitNav}<div class="stats"><div class="stat"><span>상세 좌석 합계</span><strong>${fmt(block.totalSeats)}</strong></div><div class="stat"><span>배정 좌석</span><strong>${fmt(block.assignedSeats)}</strong></div><div class="stat"><span>불용 좌석</span><strong>${fmt(block.unavailableSeats)}</strong></div></div><h4>배정 단위</h4><div class="assignment-list">${allocation}</div><div id="seat-detail" class="seat-detail"></div>`;
   bindCopyLink(id);
+  container.querySelectorAll('button[data-unit-block]').forEach((button) => { button.onclick = () => selectBlock(button.dataset.unitBlock, true); });
   renderSeats(id, $('#seat-detail'));
   updateMapState(); if (updateUrl) paramUrl('block', id); container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -102,7 +111,7 @@ function renderSeats(id, container) {
   const minRow = Math.min(...list.map((seat) => seat.row)), maxRow = Math.max(...list.map((seat) => seat.row)), minCol = Math.min(...list.map((seat) => seat.column)), maxCol = Math.max(...list.map((seat) => seat.column));
   const lookup = new Map(list.map((seat) => [`${seat.row}:${seat.column}`, seat])), legend = new Map(); for (const seat of list) if (!seat.unavailable && seat.unit) legend.set(seat.unit, seat.color);
   const legendHtml = [...legend.entries()].map(([unit, color]) => `<span><i style="background:${color}"></i>${escapeHtml(unit)}</span>`).join('') + (list.some((seat) => seat.unavailable) ? '<span><i class="unavailable"></i>불용 좌석</span>' : '');
-  container.innerHTML = `<p>좌우로 스크롤해 좌석 번호를 확인하세요.</p><div class="seat-legend">${legendHtml}</div><div class="seat-grid-wrap"><div class="seat-grid"></div></div>`;
+  container.innerHTML = `<div class="seat-grid-heading"><p>전체 좌석 배치도를 확대해 좌석 번호를 확인하세요.</p><div class="seat-zoom-controls" aria-label="좌석 배치도 확대 축소"><button type="button" data-seat-zoom="out" aria-label="좌석 배치도 축소">−</button><button type="button" data-seat-zoom="in" aria-label="좌석 배치도 확대">+</button><button type="button" data-seat-zoom="fit">전체 보기</button></div></div><div class="seat-legend">${legendHtml}</div><div class="seat-grid-wrap"><div class="seat-grid-stage"><div class="seat-grid"></div></div></div>`;
   const grid = container.querySelector('.seat-grid'); grid.style.gridTemplateColumns = `36px repeat(${maxCol - minCol + 1},29px)`; const fragment = document.createDocumentFragment();
   for (let row = minRow; row <= maxRow; row++) {
     const label = document.createElement('div'); label.className = 'seat-row-label'; label.textContent = `${row - minRow + 1}열`; fragment.append(label);
@@ -113,6 +122,30 @@ function renderSeats(id, container) {
     }
   }
   grid.append(fragment);
+  setupSeatZoom(container);
+}
+function setupSeatZoom(container) {
+  const viewport = container.querySelector('.seat-grid-wrap'), stage = container.querySelector('.seat-grid-stage'), grid = container.querySelector('.seat-grid');
+  const naturalWidth = grid.scrollWidth, naturalHeight = grid.scrollHeight;
+  let scale = 1, fitScale = 1;
+  const applyScale = () => { stage.style.width = `${naturalWidth * scale}px`; stage.style.height = `${naturalHeight * scale}px`; grid.style.transform = `scale(${scale})`; };
+  const fit = () => {
+    const availableWidth = viewport.clientWidth - 36, availableHeight = Math.min(window.innerHeight * .58, 520);
+    fitScale = Math.min(1, availableWidth / naturalWidth, availableHeight / naturalHeight);
+    scale = fitScale; applyScale(); viewport.scrollTo(0, 0);
+  };
+  container.querySelectorAll('[data-seat-zoom]').forEach((button) => { button.onclick = () => {
+    if (button.dataset.seatZoom === 'fit') { fit(); return; }
+    const next = button.dataset.seatZoom === 'in' ? scale * 1.5 : scale / 1.5;
+    scale = Math.max(fitScale, Math.min(2.5, next)); applyScale();
+  }; });
+  fit();
+  let observedWidth = viewport.clientWidth;
+  const resize = new ResizeObserver(() => {
+    if (!container.isConnected) { resize.disconnect(); return; }
+    if (viewport.clientWidth !== observedWidth) { observedWidth = viewport.clientWidth; if (scale === fitScale) fit(); }
+  });
+  resize.observe(viewport);
 }
 function contrast(hex) { const rgb = [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16)); return rgb.reduce((sum, value, index) => sum + value * [.299, .587, .114][index], 0) < 135 ? '#fff' : '#26201e'; }
 function showSearch() {
