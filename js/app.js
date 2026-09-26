@@ -1,5 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
+const DATA_VERSION = '20260927-15';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -280,7 +281,7 @@ function setupMapControls() {
 }
 async function init() {
   try {
-    const [units, blocks, seats, geometry, gates] = await Promise.all(['units', 'blocks', 'seats', 'stadium-geometry', 'gates'].map(async (name) => { const response = await fetch(`./data/${name}.json`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
+    const [units, blocks, seats, geometry, gates] = await Promise.all(['units', 'blocks', 'seats', 'stadium-geometry', 'gates'].map(async (name) => { const response = await fetch(`./data/${name}.json?v=${DATA_VERSION}`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
     Object.assign(state, { units, blocks, seats, geometry, gates }); renderMap(); renderBlockButtons(); setupMapControls();
     const gateDialog = $('#gate-dialog');
     gateDialog.querySelector('.gate-dialog-close').onclick = closeGate;
