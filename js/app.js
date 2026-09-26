@@ -13,7 +13,7 @@ const makeSvg = (tag, attrs = {}) => { const node = document.createElementNS(svg
 function isKuBlock(id) { return Boolean(state.blocks[id]) || alumniBlocks.has(id); }
 function addGateLabel(root, label, x, y, rotation) {
   const gate = makeSvg('g', { class: 'map-gate', transform: `translate(${x} ${y}) rotate(${rotation})` });
-  gate.append(makeSvg('rect', { x: -70, y: -19, width: 140, height: 38, rx: 4, class: 'map-gate-badge' }));
+  gate.append(makeSvg('rect', { x: -60, y: -12, width: 120, height: 24, rx: 3, class: 'map-gate-badge' }));
   const text = makeSvg('text', { x: 0, y: 1, class: 'map-gate-label' }); text.textContent = label; gate.append(text);
   root.append(gate);
 }
@@ -46,9 +46,9 @@ function renderMap() {
   art.append(makeSvg('rect', { x: 779, y: -34, width: 134, height: 38, rx: 5, class: 'scoreboard' }));
   const boardLabel = makeSvg('text', { x: 846, y: -9, class: 'scoreboard-label', 'text-anchor': 'middle' });
   boardLabel.textContent = '전광판'; art.append(boardLabel);
-  addGateLabel(art, '1-3 Gate', 382, 151, -45);
-  addGateLabel(art, '2-1 Gate', 103, 789, -72);
-  addGateLabel(art, '2-2 Gate', 370, 1270, 55);
+  addGateLabel(art, '1-3 Gate', 380, 145, -45);
+  addGateLabel(art, '2-1 Gate', 45, 615, 115);
+  addGateLabel(art, '2-2 Gate', 335, 1265, 55);
   root.append(art);
   updateMapState();
 }
