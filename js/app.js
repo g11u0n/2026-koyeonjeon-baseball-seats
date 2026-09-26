@@ -23,7 +23,10 @@ function renderMap() {
   for (const item of state.geometry.paths) {
     const attrs = { d: item.d };
     for (const key of ['fill', 'stroke', 'stroke-width', 'stroke-miterlimit']) if (item[key]) attrs[key] = item[key];
-    if (!item.block) { art.append(makeSvg('path', attrs)); continue; }
+    if (!item.block) {
+      if (['#EBE3AA', '#BCBC87'].includes(attrs.fill)) attrs.fill = '#d5d7dc';
+      art.append(makeSvg('path', attrs)); continue;
+    }
     const id = item.block, ku = isKuBlock(id), alumni = alumniBlocks.has(id), data = state.blocks[id];
     attrs.class = `map-block ${ku ? 'ku' : 'neutral'}${alumni ? ' alumni' : ''}`;
     attrs['data-block'] = id;
