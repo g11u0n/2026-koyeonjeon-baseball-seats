@@ -24,6 +24,10 @@ for (const [blockId, block] of Object.entries(blocks)) {
     const allowed = byUnit.get(name);
     assert.ok(allowed, `${blockId}구역 ${name}: 입장 게이트 없음`);
     const override = gateByUnitBlock[name]?.[blockId];
+    if (blockId.startsWith('4')) {
+      assert.ok(allowed.has('1-3'), `${blockId}구역 ${name}: 외야 게이트 목록 누락`);
+      assert.ok(!override || override === '1-3', `${blockId}구역 ${name}: 400번대는 외야 1-3 Gate`);
+    }
     if (allowed.size > 1) assert.ok(override, `${blockId}구역 ${name}: 중복 게이트 지정 필요`);
     if (override) assert.ok(allowed.has(override), `${blockId}구역 ${name}: 잘못된 게이트`);
   }

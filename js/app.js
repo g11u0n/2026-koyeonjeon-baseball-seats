@@ -13,6 +13,7 @@ const makeSvg = (tag, attrs = {}) => { const node = document.createElementNS(svg
 function isKuBlock(id) { return Boolean(state.blocks[id]) || alumniBlocks.has(id); }
 function gateById(id) { return state.gates.gates.find((gate) => gate.id === id); }
 function gateForUnitBlock(name, block) {
+  if (String(block).startsWith('4')) return '1-3';
   const override = state.gates.gateByUnitBlock[name]?.[block];
   if (override) return override;
   return state.gates.gates.find((gate) => gate.units.some((unit) => (state.gates.unitAliases[unit] || unit) === name))?.id;
@@ -23,11 +24,6 @@ function gatesForBlock(id) {
   return state.gates.gates.filter((gate) => assigned.has(gate.id));
 }
 function gateBadges(id) { return `<span class="gate-badges">${gatesForBlock(id).map((gate) => `<span class="gate-badge">${escapeHtml(gate.label)}</span>`).join('')}</span>`; }
-function gateUnitBlocks(gateId, displayName) {
-  if (displayName === '교우회석') return [...alumniBlocks];
-  const name = state.gates.unitAliases[displayName] || displayName;
-  return (state.units[name]?.assignments || []).filter((item) => gateForUnitBlock(name, item.block) === gateId).map((item) => item.block);
-}
 function addGateLabel(root, id, x, y, rotation) {
   const label = `${id} Gate`;
   const gate = makeSvg('g', { class: 'map-gate', transform: `translate(${x} ${y}) rotate(${rotation})`, 'data-gate': id, tabindex: '0', role: 'button', 'aria-label': `${gateById(id).label} 입장 단위 보기` });
@@ -86,37 +82,20 @@ function updateMapState() {
   const selected = state.unit ? new Set(state.units[state.unit]?.assignments.map((item) => item.block) || []) : null;
   document.querySelectorAll('.map-block').forEach((node) => { const id = node.dataset.block; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
   document.querySelectorAll('.map-label').forEach((node) => { const id = node.dataset.label; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
-  document.querySelectorAll('.map-gate, .gate-shortcut').forEach((node) => node.classList.toggle('active', node.dataset.gate === state.gate));
+  document.querySelectorAll('.map-gate').forEach((node) => node.classList.toggle('active', node.dataset.gate === state.gate));
   document.querySelectorAll('.block-list button').forEach((node) => node.classList.toggle('active', node.dataset.block === state.block));
   $('#map-status').textContent = state.unit ? `${selected.size}개 배정 구역` : '고려대학교 48개 구역';
   $('#map-hint').textContent = state.block ? `${state.block}구역 선택됨` : '빨간색 구역을 선택하세요';
 }
-function renderGateShortcuts() {
-  const shortcuts = $('#gate-shortcuts'); shortcuts.replaceChildren();
-  for (const gate of state.gates.gates) {
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'gate-shortcut';
-    button.dataset.gate = gate.id; button.textContent = gate.label; button.onclick = () => showGate(gate.id);
-    shortcuts.append(button);
-  }
-}
 function showGate(id) {
-  const gate = gateById(id), panel = $('#gate-panel');
+  const gate = gateById(id), dialog = $('#gate-dialog');
   state.gate = id;
-  panel.hidden = false;
-  panel.innerHTML = `<div class="gate-panel-heading"><div><span>입장 게이트별 단위</span><h3>${escapeHtml(gate.label)}</h3></div><button type="button" class="gate-panel-close" aria-label="게이트 안내 닫기">×</button></div><ul class="gate-unit-list">${gate.units.map((name) => {
-    const blocks = gateUnitBlocks(id, name);
-    return `<li><button type="button" data-gate-unit="${escapeHtml(name)}"><strong>${escapeHtml(name)}</strong><small>${blocks.length === 1 ? `${blocks[0]}구역` : `${blocks.length}개 구역`}</small></button></li>`;
-  }).join('')}</ul>`;
-  panel.querySelector('.gate-panel-close').onclick = () => { state.gate = null; panel.hidden = true; updateMapState(); };
-  panel.querySelectorAll('[data-gate-unit]').forEach((button) => {
-    button.onclick = () => {
-      const name = button.dataset.gateUnit, blocks = gateUnitBlocks(id, name);
-      if (name === '교우회석') selectBlock(blocks[0], true);
-      else selectUnit(state.gates.unitAliases[name] || name, true, blocks[0]);
-    };
-  });
-  updateMapState(); panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  dialog.querySelector('#gate-dialog-title').textContent = gate.label;
+  dialog.querySelector('.gate-unit-list').innerHTML = gate.units.map((name) => `<li>${escapeHtml(name)}</li>`).join('');
+  dialog.hidden = false;
+  updateMapState();
 }
+function closeGate() { $('#gate-dialog').hidden = true; state.gate = null; updateMapState(); }
 function renderBlockButtons() {
   const list = $('#block-list'); list.replaceChildren();
   for (const id of [...Object.keys(state.blocks), ...alumniBlocks].sort((a, b) => Number(a) - Number(b))) { const button = document.createElement('button'); button.type = 'button'; button.dataset.block = id; button.textContent = id; button.setAttribute('aria-label', `${id}구역 선택`); button.onclick = () => selectBlock(id, true); list.append(button); }
@@ -271,7 +250,10 @@ function setupMapControls() {
 async function init() {
   try {
     const [units, blocks, seats, geometry, gates] = await Promise.all(['units', 'blocks', 'seats', 'stadium-geometry', 'gates'].map(async (name) => { const response = await fetch(`./data/${name}.json`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
-    Object.assign(state, { units, blocks, seats, geometry, gates }); renderMap(); renderGateShortcuts(); renderBlockButtons(); setupMapControls();
+    Object.assign(state, { units, blocks, seats, geometry, gates }); renderMap(); renderBlockButtons(); setupMapControls();
+    const gateDialog = $('#gate-dialog');
+    gateDialog.querySelector('.gate-dialog-close').onclick = closeGate;
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !gateDialog.hidden) closeGate(); });
     $('#unit-search').addEventListener('input', showSearch); $('#unit-search').addEventListener('keydown', (event) => { if (event.key === 'Escape') $('#search-results').hidden = true; if (event.key === 'Enter') { const first = $('#search-results button'); if (first) { event.preventDefault(); first.click(); } } });
     document.addEventListener('click', (event) => { if (!event.target.closest('.search-wrap')) $('#search-results').hidden = true; });
     const params = new URLSearchParams(location.search), unit = params.get('unit'), block = params.get('block'); if (unit && units[unit]) selectUnit(unit, false); else if (block && (blocks[block] || alumniBlocks.has(block))) selectBlock(block, false);
