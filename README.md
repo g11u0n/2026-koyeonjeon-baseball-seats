@@ -11,10 +11,12 @@ js/app.js               검색·지도·좌석 상세
 data/units.json         단위별 배정
 data/blocks.json        구역별 요약
 data/seats.json         좌석 위치·번호·배정·제한 여부
+data/stadium-geometry.json  원본 벡터에서 생성한 구역 경로
 data/validation.json    원본 간 불일치
 validation-report.md    사람이 읽는 검증 결과
 scripts/extract-seat-data.ps1  Excel 읽기 전용 추출
 scripts/build-data.js         공개 JSON 및 검증 보고서 생성
+scripts/build-stadium-geometry.js  로컬 SVG에서 구역 경로 생성
 scripts/validate-seat-data.js 공개 JSON 구조 검증
 ```
 
@@ -47,4 +49,4 @@ node .\scripts\serve.js
 3. GitHub 저장소 **Settings → Pages → Build and deployment**에서 **Deploy from a branch**, 배포 브랜치와 **/(root)**를 선택합니다.
 4. 배포 URL `https://USERNAME.github.io/REPOSITORY/`에서 검색과 블록 선택을 확인합니다. 모든 리소스는 상대 경로를 사용합니다.
 
-지도는 Excel `배치도`의 전체 구역 배치를 참고해 새로 그린 독립적인 인터랙티브 SVG입니다. 원본 SVG와 Excel 이미지는 배포하지 않습니다. 좌석 수는 각 블록 상세 시트의 실제 색상 셀 개수를 기준으로 계산합니다.
+지도는 로컬 경기장 벡터 SVG의 외곽과 좌석 경로에서 생성한 `data/stadium-geometry.json`을 사용합니다. 구역도를 다시 만들려면 원본 SVG를 프로젝트 폴더에 둔 뒤 `node .\scripts\build-stadium-geometry.js`를 실행하세요. 원본 SVG와 Excel 이미지는 배포하지 않습니다. 좌석 수는 각 블록 상세 시트의 실제 색상 셀 개수를 기준으로 계산합니다.

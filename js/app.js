@@ -3,75 +3,56 @@ const svgNS = 'http://www.w3.org/2000/svg';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
-const state = { units: {}, blocks: {}, seats: {}, unit: null, block: null, view: baseView(), dragged: false };
+const state = { units: {}, blocks: {}, seats: {}, geometry: null, unit: null, block: null, view: baseView(), dragged: false };
 
 const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const fmt = (number) => Number(number).toLocaleString('ko-KR');
 const rangeText = (ranges) => ranges.map(({ seatFrom, seatTo }) => seatFrom === seatTo ? `${seatFrom}` : `${seatFrom}–${seatTo}`).join(', ');
 const paramUrl = (key, value) => { const url = new URL(location.href); url.search = ''; if (value) url.searchParams.set(key, value); history.replaceState(null, '', url); };
 const makeSvg = (tag, attrs = {}) => { const node = document.createElementNS(svgNS, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); return node; };
-function polar(cx, cy, radius, degree) { const rad = degree * Math.PI / 180; return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)]; }
-function arcPath(cx, cy, inner, outer, start, end) {
-  const a = polar(cx, cy, outer, start), b = polar(cx, cy, outer, end), c = polar(cx, cy, inner, end), d = polar(cx, cy, inner, start);
-  return `M${a[0]} ${a[1]} A${outer} ${outer} 0 0 1 ${b[0]} ${b[1]} L${c[0]} ${c[1]} A${inner} ${inner} 0 0 0 ${d[0]} ${d[1]} Z`;
-}
-function allBlockIds() {
-  return {
-    4: Array.from({ length: 22 }, (_, i) => String(422 - i)),
-    3: Array.from({ length: 34 }, (_, i) => String(301 + i)),
-    2: Array.from({ length: 26 }, (_, i) => String(201 + i)),
-    1: Array.from({ length: 22 }, (_, i) => String(101 + i)),
-  };
-}
 function isKuBlock(id) { return Boolean(state.blocks[id]) || alumniBlocks.has(id); }
-function drawField(root) {
-  const field = makeSvg('g', { class: 'field-art', transform: 'translate(450 455) scale(.35) translate(-846 -613)' });
-  field.append(makeSvg('path', { d: 'M1361.96 531.751C1357.7 517.3 1353.15 503.292 1348.36 489.727C1345.98 481.676 1341.11 467.064 1332.38 448.427C1238.34 225.909 1063 132.281 846.026 132.281C603.695 132.281 413.252 249.055 330.047 531.791L460.471 609.358L547.42 755.959L527.333 790.657C547.098 846.689 589.486 925.022 640.689 984.274C676.153 1025.29 744.464 1095.01 846.026 1095.01C947.587 1095.01 1015.9 1025.29 1051.36 984.274C1102.57 925.022 1144.99 846.689 1164.72 790.657L1144.63 755.959L1231.58 609.358L1362 531.791Z', class: 'field' }));
-  field.append(makeSvg('path', { d: 'M845.268 930.495L560.066 645.304C560.066 645.304 630.189 449.514 845.268 449.514C1060.35 449.514 1131.88 645.585 1131.88 645.585L845.268 930.495Z', class: 'infield-dirt' }));
-  field.append(makeSvg('circle', { cx: 844.731, cy: 893.154, r: 46.733, class: 'infield-dirt' }));
-  field.append(makeSvg('path', { d: 'M961.493 738.565C961.493 746.253 964.19 753.337 968.699 758.892L872.25 855.338C864.521 849.703 855.021 846.402 844.756 846.402C834.491 846.402 824.951 849.703 817.262 855.338L720.129 758.208C724.315 752.774 726.811 745.931 726.811 738.524C726.811 731.118 724.315 724.315 720.129 718.841L823.059 615.914C828.775 621.107 836.383 624.287 844.716 624.287C853.048 624.287 860.656 621.107 866.373 615.914L968.699 718.237C964.19 723.792 961.493 730.836 961.493 738.565Z', class: 'infield-grass' }));
-  field.append(makeSvg('circle', { cx: 844.756, cy: 738.524, r: 32.3, class: 'infield-dirt' }));
-  field.append(makeSvg('path', { d: 'M870.329 883.848L1324.97 430.348M816.89 884.327L367.531 434.943', class: 'foul-line' }));
-  field.append(makeSvg('path', { d: 'M855.693 580.208L844.734 569.25L833.776 580.208L844.734 591.166ZM695.881 739.46L684.923 728.502L673.964 739.46L684.923 750.418ZM1013.79 738.435L1002.83 727.477L991.876 738.435L1002.83 749.393Z', class: 'base' }));
-  field.append(makeSvg('path', { d: 'M850.558 904.547L843.594 911.229L836.671 904.547L836.671 888.084L850.558 888.084Z', class: 'base' }));
-  root.append(field);
-}
-function addBlock(root, id, inner, outer, start, end) {
-  const ku = isKuBlock(id), alumni = alumniBlocks.has(id), data = state.blocks[id];
-  const attrs = { d: arcPath(450, 455, inner, outer, start, end), class: `map-block ${ku ? 'ku' : 'neutral'}${alumni ? ' alumni' : ''}`, 'data-block': id };
-  if (ku) Object.assign(attrs, { tabindex: '0', role: 'button', 'aria-label': alumni ? `${id}구역 교우회석` : `${id}구역, ${data.availableSeats}석` });
-  const path = makeSvg('path', attrs), title = makeSvg('title'); title.textContent = alumni ? `${id}구역 · 교우회석` : data ? `${id}구역 · ${data.availableSeats}석` : `${id}구역`; path.append(title);
-  if (ku) {
-    path.addEventListener('click', () => selectBlock(id, true));
-    path.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectBlock(id, true); } });
-  }
-  root.append(path);
-  const mid = (start + end) / 2, [x, y] = polar(450, 455, (inner + outer) / 2, mid);
-  const label = makeSvg('text', { x: x.toFixed(1), y: y.toFixed(1), class: `map-label ${ku ? 'ku' : 'neutral'}`, 'data-label': id }); label.textContent = id; root.append(label);
-}
-function addGate(root, label, x, y, rotation, type) {
-  const gate = makeSvg('g', { class: `map-gate ${type}` });
-  const badge = makeSvg('g', { transform: `translate(${x} ${y}) rotate(${rotation})` });
-  badge.append(makeSvg('rect', { x: -55, y: -16, width: 110, height: 32, class: 'map-gate-badge' }));
-  const text = makeSvg('text', { x: 0, y: 1, class: 'map-gate-label' }); text.textContent = label; badge.append(text);
-  gate.append(badge); root.append(gate);
+function addGateLabel(root, label, x, y, rotation) {
+  const gate = makeSvg('g', { class: 'map-gate', transform: `translate(${x} ${y}) rotate(${rotation})` });
+  gate.append(makeSvg('rect', { x: -70, y: -19, width: 140, height: 38, rx: 4, class: 'map-gate-badge' }));
+  const text = makeSvg('text', { x: 0, y: 1, class: 'map-gate-label' }); text.textContent = label; gate.append(text);
+  root.append(gate);
 }
 function renderMap() {
-  const root = $('#seat-map'); root.replaceChildren(); const ids = allBlockIds();
-  const configs = { 4: { inner: 342, outer: 405, start: 198, end: 342 }, 3: { inner: 335, outer: 398, start: -12, end: 192 }, 2: { inner: 270, outer: 329, start: -18, end: 198 }, 1: { inner: 205, outer: 264, start: -25, end: 205 } };
-  drawField(root);
-  for (const level of [4, 3, 2, 1]) { const config = configs[level], span = (config.end - config.start) / ids[level].length; ids[level].forEach((id, index) => addBlock(root, id, config.inner, config.outer, config.start + index * span + .45, config.start + (index + 1) * span - .45)); }
-  root.append(makeSvg('path', { d: 'M65 614 C42 594 39 571 45 548 C50 526 56 505 57 482', class: 'map-gate-route' }));
-  root.append(makeSvg('path', { d: 'M57 463 L45 488 L69 488 Z', class: 'map-gate-arrow' }));
-  root.append(makeSvg('path', { d: 'M145 715 C123 743 126 778 160 805', class: 'map-gate-route' }));
-  root.append(makeSvg('path', { d: 'M178 824 L149 814 L169 793 Z', class: 'map-gate-arrow' }));
-  addGate(root, '1-3 Gate', 138, 105, -47, 'outer');
-  addGate(root, '게이트 2-1', 27, 520, -90, 'inner');
-  addGate(root, '게이트 2-2', 82, 766, -45, 'inner');
-  root.append(makeSvg('rect', { x: 402, y: 7, width: 96, height: 30, rx: 4, class: 'scoreboard' }));
-  const boardLabel = makeSvg('text', { x: 450, y: 27, class: 'scoreboard-label', 'text-anchor': 'middle' }); boardLabel.textContent = '전광판'; root.append(boardLabel);
+  const root = $('#seat-map'); root.replaceChildren();
+  const art = makeSvg('g', { transform: 'translate(43.25 77.75) scale(.5)', fill: 'none' });
+  for (const item of state.geometry.paths) {
+    const attrs = { d: item.d };
+    for (const key of ['fill', 'stroke', 'stroke-width', 'stroke-miterlimit']) if (item[key]) attrs[key] = item[key];
+    if (!item.block) { art.append(makeSvg('path', attrs)); continue; }
+    const id = item.block, ku = isKuBlock(id), alumni = alumniBlocks.has(id), data = state.blocks[id];
+    attrs.class = `map-block ${ku ? 'ku' : 'neutral'}${alumni ? ' alumni' : ''}`;
+    attrs['data-block'] = id;
+    if (ku) Object.assign(attrs, { tabindex: '0', role: 'button', 'aria-label': alumni ? `${id}구역 교우회석` : `${id}구역, ${data.availableSeats}석` });
+    const path = makeSvg('path', attrs), title = makeSvg('title');
+    title.textContent = alumni ? `${id}구역 · 교우회석` : data ? `${id}구역 · ${data.availableSeats}석` : `${id}구역`;
+    path.append(title);
+    if (ku) {
+      path.addEventListener('click', () => selectBlock(id, true));
+      path.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectBlock(id, true); } });
+    }
+    art.append(path);
+  }
+  for (const item of state.geometry.paths) {
+    if (!item.block) continue;
+    const ku = isKuBlock(item.block);
+    const label = makeSvg('text', { x: item.label[0], y: item.label[1], class: `map-label ${ku ? 'ku' : 'neutral'}`, 'data-label': item.block });
+    label.textContent = item.block; art.append(label);
+  }
+  art.append(makeSvg('rect', { x: 779, y: -34, width: 134, height: 38, rx: 5, class: 'scoreboard' }));
+  const boardLabel = makeSvg('text', { x: 846, y: -9, class: 'scoreboard-label', 'text-anchor': 'middle' });
+  boardLabel.textContent = '전광판'; art.append(boardLabel);
+  addGateLabel(art, '1-3 Gate', 382, 151, -45);
+  addGateLabel(art, '2-1 Gate', 103, 789, -72);
+  addGateLabel(art, '2-2 Gate', 370, 1270, 55);
+  root.append(art);
   updateMapState();
 }
+
 function updateMapState() {
   const selected = state.unit ? new Set(state.units[state.unit]?.assignments.map((item) => item.block) || []) : null;
   document.querySelectorAll('.map-block').forEach((node) => { const id = node.dataset.block; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
@@ -232,8 +213,8 @@ function setupMapControls() {
 }
 async function init() {
   try {
-    const [units, blocks, seats] = await Promise.all(['units', 'blocks', 'seats'].map(async (name) => { const response = await fetch(`./data/${name}.json`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
-    Object.assign(state, { units, blocks, seats }); renderMap(); renderBlockButtons(); setupMapControls();
+    const [units, blocks, seats, geometry] = await Promise.all(['units', 'blocks', 'seats', 'stadium-geometry'].map(async (name) => { const response = await fetch(`./data/${name}.json`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
+    Object.assign(state, { units, blocks, seats, geometry }); renderMap(); renderBlockButtons(); setupMapControls();
     $('#unit-search').addEventListener('input', showSearch); $('#unit-search').addEventListener('keydown', (event) => { if (event.key === 'Escape') $('#search-results').hidden = true; if (event.key === 'Enter') { const first = $('#search-results button'); if (first) { event.preventDefault(); first.click(); } } });
     document.addEventListener('click', (event) => { if (!event.target.closest('.search-wrap')) $('#search-results').hidden = true; });
     const params = new URLSearchParams(location.search), unit = params.get('unit'), block = params.get('block'); if (unit && units[unit]) selectUnit(unit, false); else if (block && (blocks[block] || alumniBlocks.has(block))) selectBlock(block, false);
