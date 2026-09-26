@@ -47,7 +47,7 @@ function renderMap() {
   const boardLabel = makeSvg('text', { x: 846, y: -9, class: 'scoreboard-label', 'text-anchor': 'middle' });
   boardLabel.textContent = '전광판'; art.append(boardLabel);
   addGateLabel(art, '1-3 Gate', 380, 145, -40);
-  addGateLabel(art, '2-1 Gate', 125, 840, 75);
+  addGateLabel(art, '2-1 Gate', 145, 855, 75);
   addGateLabel(art, '2-2 Gate', 365, 1240, 40);
   root.append(art);
   updateMapState();
