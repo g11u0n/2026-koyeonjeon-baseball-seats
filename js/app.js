@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260927-18';
+const DATA_VERSION = '20260927-19';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -48,7 +48,7 @@ function addGateArrow(root, x, y, angle, direction) {
   }));
 }
 function addSubwayExits(root) {
-  const station = makeSvg('g', { class: 'subway-station', transform: 'translate(160 235) rotate(180) scale(.75)', 'aria-label': '종합운동장역 5번·6번 출구' });
+  const station = makeSvg('g', { class: 'subway-station', transform: 'translate(185 235) rotate(180) scale(.9)', 'aria-label': '종합운동장역 5번·6번 출구' });
   station.append(makeSvg('path', { d: 'M-15 218 L205 176 M39 208 V78 M175 182 V128 L113 140 V18', class: 'subway-line' }));
   for (const [number, x, y] of [[5, 39, 78], [6, 113, 18]]) {
     station.append(makeSvg('circle', { cx: x, cy: y, r: 16, class: 'subway-exit' }));
@@ -56,6 +56,8 @@ function addSubwayExits(root) {
     label.textContent = number; station.append(label);
   }
   root.append(station);
+  const name = makeSvg('text', { x: 26, y: 30, class: 'subway-station-name' });
+  name.textContent = '종합운동장역'; root.append(name);
 }
 function renderMap() {
   const root = $('#seat-map'); root.replaceChildren();
@@ -98,8 +100,8 @@ function renderMap() {
   addGateLabel(art, '1-2', 145, 855, 75);
   addGateLabel(art, '2-1', 365, 1240, 40);
   addGateArrow(art, 300, 235, -35, 'left');
-  addGateArrow(art, 85, 955, -25, 'left');
-  addGateArrow(art, 350, 1340, 35, 'right');
+  addGateArrow(art, 25, 1015, -25, 'left');
+  addGateArrow(art, 350, 1400, 35, 'right');
   root.append(art);
   updateMapState();
 }
