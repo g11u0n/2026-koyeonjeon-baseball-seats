@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f7f3ed">
   <meta name="description" content="2026 정기 고연전 잠실야구장 야구 경기 고려대학교 좌석 배정 안내">
   <title>2026 정기 고연전 야구 좌석 안내</title>
-  <link rel="stylesheet" href="./css/style.css?v=20260927-10">
-  <script src="./js/app.js?v=20260927-10" defer></script>
+  <link rel="stylesheet" href="./css/style.css?v=20260927-11">
+  <script src="./js/app.js?v=20260927-11" defer></script>
 </head>
 <body>
   <div class="page-shell">
@@ -34,6 +34,8 @@
           <div class="map-viewport" id="map-viewport"><svg id="seat-map" viewBox="0 0 900 900" role="img" aria-label="잠실야구장 전체 좌석 배치도. 1-3, 2-1, 2-2 게이트가 표시되어 있습니다. 빨간색 고려대학교 구역을 선택할 수 있습니다."></svg></div>
           <div class="map-bottomline"><span id="map-hint">좌석 구역을 선택하세요</span><div class="zoom-controls"><button type="button" id="zoom-out" aria-label="축소">−</button><button type="button" id="zoom-in" aria-label="확대">+</button><button type="button" id="zoom-reset">전체 보기</button></div></div>
         </div>
+        <div id="gate-shortcuts" class="gate-shortcuts" aria-label="입장 게이트 선택"></div>
+        <section id="gate-panel" class="gate-panel" aria-label="입장 게이트별 단위" hidden></section>
         <div class="block-quick" aria-label="구역 바로 선택"><span>구역 바로 찾기</span><div id="block-list" class="block-list"></div></div>
       </section>
       <section class="detail-section" aria-labelledby="detail-heading"><div class="section-heading"><div><span class="section-index">02 / 배정 상세</span><h2 id="detail-heading">선택한 구역</h2></div></div><div id="block-detail" class="detail-placeholder">위 지도에서 구역을 선택하면 배정 정보를 볼 수 있습니다.</div></section>

@@ -3,7 +3,7 @@ const svgNS = 'http://www.w3.org/2000/svg';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
-const state = { units: {}, blocks: {}, seats: {}, geometry: null, unit: null, block: null, view: baseView(), dragged: false };
+const state = { units: {}, blocks: {}, seats: {}, geometry: null, gates: null, unit: null, block: null, gate: null, view: baseView(), dragged: false };
 
 const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const fmt = (number) => Number(number).toLocaleString('ko-KR');
@@ -11,10 +11,32 @@ const rangeText = (ranges) => ranges.map(({ seatFrom, seatTo }) => seatFrom === 
 const paramUrl = (key, value) => { const url = new URL(location.href); url.search = ''; if (value) url.searchParams.set(key, value); history.replaceState(null, '', url); };
 const makeSvg = (tag, attrs = {}) => { const node = document.createElementNS(svgNS, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); return node; };
 function isKuBlock(id) { return Boolean(state.blocks[id]) || alumniBlocks.has(id); }
-function addGateLabel(root, label, x, y, rotation) {
-  const gate = makeSvg('g', { class: 'map-gate', transform: `translate(${x} ${y}) rotate(${rotation})` });
+function gateById(id) { return state.gates.gates.find((gate) => gate.id === id); }
+function gateForUnitBlock(name, block) {
+  const override = state.gates.gateByUnitBlock[name]?.[block];
+  if (override) return override;
+  return state.gates.gates.find((gate) => gate.units.some((unit) => (state.gates.unitAliases[unit] || unit) === name))?.id;
+}
+function gatesForBlock(id) {
+  if (alumniBlocks.has(id)) return [gateById('1-3')];
+  const assigned = new Set((state.blocks[id]?.units || []).map((unit) => gateForUnitBlock(unit.name, id)));
+  return state.gates.gates.filter((gate) => assigned.has(gate.id));
+}
+function gateBadges(id) { return `<span class="gate-badges">${gatesForBlock(id).map((gate) => `<span class="gate-badge">${escapeHtml(gate.label)}</span>`).join('')}</span>`; }
+function gateUnitBlocks(gateId, displayName) {
+  if (displayName === '교우회석') return [...alumniBlocks];
+  const name = state.gates.unitAliases[displayName] || displayName;
+  return (state.units[name]?.assignments || []).filter((item) => gateForUnitBlock(name, item.block) === gateId).map((item) => item.block);
+}
+function addGateLabel(root, id, x, y, rotation) {
+  const label = `${id} Gate`;
+  const gate = makeSvg('g', { class: 'map-gate', transform: `translate(${x} ${y}) rotate(${rotation})`, 'data-gate': id, tabindex: '0', role: 'button', 'aria-label': `${gateById(id).label} 입장 단위 보기` });
+  gate.append(makeSvg('rect', { x: -65, y: -23, width: 130, height: 46, class: 'map-gate-hit' }));
   gate.append(makeSvg('rect', { x: -60, y: -18, width: 120, height: 36, rx: 3, class: 'map-gate-badge' }));
   const text = makeSvg('text', { x: 0, y: 1, class: 'map-gate-label' }); text.textContent = label; gate.append(text);
+  const open = () => { if (!state.dragged) showGate(id); };
+  gate.addEventListener('click', open);
+  gate.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showGate(id); } });
   root.append(gate);
 }
 function renderMap() {
@@ -53,9 +75,9 @@ function renderMap() {
   art.append(makeSvg('rect', { x: 779, y: -34, width: 134, height: 38, rx: 5, class: 'scoreboard' }));
   const boardLabel = makeSvg('text', { x: 846, y: -9, class: 'scoreboard-label', 'text-anchor': 'middle' });
   boardLabel.textContent = '전광판'; art.append(boardLabel);
-  addGateLabel(art, '1-3 Gate', 380, 145, -40);
-  addGateLabel(art, '2-1 Gate', 145, 855, 75);
-  addGateLabel(art, '2-2 Gate', 365, 1240, 40);
+  addGateLabel(art, '1-3', 380, 145, -40);
+  addGateLabel(art, '2-1', 145, 855, 75);
+  addGateLabel(art, '2-2', 365, 1240, 40);
   root.append(art);
   updateMapState();
 }
@@ -64,21 +86,48 @@ function updateMapState() {
   const selected = state.unit ? new Set(state.units[state.unit]?.assignments.map((item) => item.block) || []) : null;
   document.querySelectorAll('.map-block').forEach((node) => { const id = node.dataset.block; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
   document.querySelectorAll('.map-label').forEach((node) => { const id = node.dataset.label; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
+  document.querySelectorAll('.map-gate, .gate-shortcut').forEach((node) => node.classList.toggle('active', node.dataset.gate === state.gate));
   document.querySelectorAll('.block-list button').forEach((node) => node.classList.toggle('active', node.dataset.block === state.block));
   $('#map-status').textContent = state.unit ? `${selected.size}개 배정 구역` : '고려대학교 48개 구역';
   $('#map-hint').textContent = state.block ? `${state.block}구역 선택됨` : '빨간색 구역을 선택하세요';
+}
+function renderGateShortcuts() {
+  const shortcuts = $('#gate-shortcuts'); shortcuts.replaceChildren();
+  for (const gate of state.gates.gates) {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'gate-shortcut';
+    button.dataset.gate = gate.id; button.textContent = gate.label; button.onclick = () => showGate(gate.id);
+    shortcuts.append(button);
+  }
+}
+function showGate(id) {
+  const gate = gateById(id), panel = $('#gate-panel');
+  state.gate = id;
+  panel.hidden = false;
+  panel.innerHTML = `<div class="gate-panel-heading"><div><span>입장 게이트별 단위</span><h3>${escapeHtml(gate.label)}</h3></div><button type="button" class="gate-panel-close" aria-label="게이트 안내 닫기">×</button></div><ul class="gate-unit-list">${gate.units.map((name) => {
+    const blocks = gateUnitBlocks(id, name);
+    return `<li><button type="button" data-gate-unit="${escapeHtml(name)}"><strong>${escapeHtml(name)}</strong><small>${blocks.length === 1 ? `${blocks[0]}구역` : `${blocks.length}개 구역`}</small></button></li>`;
+  }).join('')}</ul>`;
+  panel.querySelector('.gate-panel-close').onclick = () => { state.gate = null; panel.hidden = true; updateMapState(); };
+  panel.querySelectorAll('[data-gate-unit]').forEach((button) => {
+    button.onclick = () => {
+      const name = button.dataset.gateUnit, blocks = gateUnitBlocks(id, name);
+      if (name === '교우회석') selectBlock(blocks[0], true);
+      else selectUnit(state.gates.unitAliases[name] || name, true, blocks[0]);
+    };
+  });
+  updateMapState(); panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function renderBlockButtons() {
   const list = $('#block-list'); list.replaceChildren();
   for (const id of [...Object.keys(state.blocks), ...alumniBlocks].sort((a, b) => Number(a) - Number(b))) { const button = document.createElement('button'); button.type = 'button'; button.dataset.block = id; button.textContent = id; button.setAttribute('aria-label', `${id}구역 선택`); button.onclick = () => selectBlock(id, true); list.append(button); }
 }
-function selectUnit(name, updateUrl = true) {
+function selectUnit(name, updateUrl = true, preferredBlock = null) {
   if (!state.units[name]) return; state.unit = name; state.block = null;
   $('#unit-search').value = name; $('#search-results').hidden = true; $('#unit-search').setAttribute('aria-expanded', 'false');
   const unit = state.units[name];
   updateMapState();
   if (updateUrl) paramUrl('unit', name);
-  const firstBlock = unit.assignments[0]?.block;
+  const firstBlock = preferredBlock || unit.assignments[0]?.block;
   if (firstBlock) selectBlock(firstBlock, false);
   else { $('#block-detail').className = 'detail-placeholder'; $('#block-detail').textContent = '상세 좌석 시트에 배정된 좌석이 없습니다.'; }
 }
@@ -87,19 +136,20 @@ function bindCopyLink(id) {
 }
 function renderAlumniBlock(id, updateUrl) {
   state.block = id; const container = $('#block-detail'); container.className = 'detail-card';
-  container.innerHTML = `<div class="detail-title"><div><h3>${id} BLOCK</h3><p>외야석</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div><div class="alumni-card"><strong>교우회석</strong><p>412–415구역은 고려대학교 교우회석입니다.</p></div>`;
+  container.innerHTML = `<div class="detail-title"><div class="detail-title-main"><div class="detail-heading-row"><h3>${id} BLOCK</h3>${gateBadges(id)}</div><p>외야석</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div><div class="alumni-card"><strong>교우회석</strong><p>412–415구역은 고려대학교 교우회석입니다.</p></div>`;
   bindCopyLink(id); updateMapState(); if (updateUrl) paramUrl('block', id); container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function selectBlock(id, updateUrl = true) {
   if (alumniBlocks.has(id)) { renderAlumniBlock(id, updateUrl); return; }
   if (!state.blocks[id]) return; state.block = id; const block = state.blocks[id];
-  const allocation = block.units.map((unit) => `<div class="assignment" title="${escapeHtml(unit.name)}"><span>${escapeHtml(unit.name)}</span><strong>${fmt(unit.seats)}석</strong></div>`).join('');
+  const mixedGateBlock = gatesForBlock(id).length > 1;
+  const allocation = block.units.map((unit) => `<div class="assignment" title="${escapeHtml(unit.name)}"><span>${escapeHtml(unit.name)}${mixedGateBlock ? `<small class="assignment-gate">${escapeHtml(gateById(gateForUnitBlock(unit.name, id)).label)}</small>` : ''}</span><strong>${fmt(unit.seats)}석</strong></div>`).join('');
   const unitAssignments = state.unit ? state.units[state.unit]?.assignments || [] : [];
   const unitNav = unitAssignments.some((item) => item.block === id) && unitAssignments.length > 1
     ? `<div class="unit-block-nav" aria-label="${escapeHtml(state.unit)} 배정 구역"><strong>${escapeHtml(state.unit)} 배정 구역</strong><div>${unitAssignments.map((item) => `<button type="button" data-unit-block="${item.block}"${item.block === id ? ' class="active" aria-current="true"' : ''}>${item.block}구역 · ${fmt(item.seats)}석</button>`).join('')}</div></div>`
     : '';
   const container = $('#block-detail'); container.className = 'detail-card';
-  container.innerHTML = `<div class="detail-title"><div><h3>${id} BLOCK</h3><p>${block.level === 4 ? '외야석' : `${block.level}층`}</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div>${unitNav}<div class="stats"><div class="stat"><span>상세 좌석 합계</span><strong>${fmt(block.totalSeats)}</strong></div><div class="stat"><span>배정 좌석</span><strong>${fmt(block.assignedSeats)}</strong></div><div class="stat"><span>불용 좌석</span><strong>${fmt(block.unavailableSeats)}</strong></div></div><h4>배정 단위</h4><div class="assignment-list" style="--allocation-columns:${Math.min(3, block.units.length)}">${allocation}</div><div id="seat-detail" class="seat-detail"></div>`;
+  container.innerHTML = `<div class="detail-title"><div class="detail-title-main"><div class="detail-heading-row"><h3>${id} BLOCK</h3>${gateBadges(id)}</div><p>${block.level === 4 ? '외야석' : `${block.level}층`}</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div>${unitNav}<div class="stats"><div class="stat"><span>상세 좌석 합계</span><strong>${fmt(block.totalSeats)}</strong></div><div class="stat"><span>배정 좌석</span><strong>${fmt(block.assignedSeats)}</strong></div><div class="stat"><span>불용 좌석</span><strong>${fmt(block.unavailableSeats)}</strong></div></div><h4>배정 단위</h4><div class="assignment-list" style="--allocation-columns:${Math.min(3, block.units.length)}">${allocation}</div><div id="seat-detail" class="seat-detail"></div>`;
   bindCopyLink(id);
   container.querySelectorAll('button[data-unit-block]').forEach((button) => { button.onclick = () => selectBlock(button.dataset.unitBlock, true); });
   renderSeats(id, $('#seat-detail'));
@@ -220,8 +270,8 @@ function setupMapControls() {
 }
 async function init() {
   try {
-    const [units, blocks, seats, geometry] = await Promise.all(['units', 'blocks', 'seats', 'stadium-geometry'].map(async (name) => { const response = await fetch(`./data/${name}.json`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
-    Object.assign(state, { units, blocks, seats, geometry }); renderMap(); renderBlockButtons(); setupMapControls();
+    const [units, blocks, seats, geometry, gates] = await Promise.all(['units', 'blocks', 'seats', 'stadium-geometry', 'gates'].map(async (name) => { const response = await fetch(`./data/${name}.json`); if (!response.ok) throw Error(`${name}.json: HTTP ${response.status}`); return response.json(); }));
+    Object.assign(state, { units, blocks, seats, geometry, gates }); renderMap(); renderGateShortcuts(); renderBlockButtons(); setupMapControls();
     $('#unit-search').addEventListener('input', showSearch); $('#unit-search').addEventListener('keydown', (event) => { if (event.key === 'Escape') $('#search-results').hidden = true; if (event.key === 'Enter') { const first = $('#search-results button'); if (first) { event.preventDefault(); first.click(); } } });
     document.addEventListener('click', (event) => { if (!event.target.closest('.search-wrap')) $('#search-results').hidden = true; });
     const params = new URLSearchParams(location.search), unit = params.get('unit'), block = params.get('block'); if (unit && units[unit]) selectUnit(unit, false); else if (block && (blocks[block] || alumniBlocks.has(block))) selectBlock(block, false);
