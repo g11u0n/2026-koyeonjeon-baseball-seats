@@ -40,8 +40,20 @@ function addGateLabel(root, id, x, y, rotation) {
   gate.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showGate(id); } });
   root.append(gate);
 }
+function addSubwayExits(root) {
+  const station = makeSvg('g', { class: 'subway-station', transform: 'translate(135 820) rotate(180) scale(.7)', 'aria-label': '종합운동장역 5번·6번 출구' });
+  station.append(makeSvg('path', { d: 'M5 198 L7 140 L28 134 L28 78 L51 78 L51 127 L100 116 L100 18 L126 18 L126 110 L177 100 L190 198 Z', class: 'subway-concourse' }));
+  station.append(makeSvg('path', { d: 'M17 181 L174 181 L166 118 L116 130 L113 32 M39 91 L39 139', class: 'subway-passage' }));
+  for (const [number, x, y] of [[5, 39, 78], [6, 113, 18]]) {
+    station.append(makeSvg('circle', { cx: x, cy: y, r: 16, class: 'subway-exit' }));
+    const label = makeSvg('text', { x, y: y + 1, transform: `rotate(180 ${x} ${y})`, class: 'subway-exit-label' });
+    label.textContent = number; station.append(label);
+  }
+  root.append(station);
+}
 function renderMap() {
   const root = $('#seat-map'); root.replaceChildren();
+  addSubwayExits(root);
   const art = makeSvg('g', { transform: 'translate(43.25 77.75) scale(.5)', fill: 'none' });
   for (const item of state.geometry.paths) {
     const attrs = { d: item.d };
@@ -78,7 +90,7 @@ function renderMap() {
   boardLabel.textContent = '전광판'; art.append(boardLabel);
   addGateLabel(art, '1-3', 380, 145, -40);
   addGateLabel(art, '2-1', 145, 855, 75);
-  addGateLabel(art, '2-2', 365, 1240, 40);
+  addGateLabel(art, '1-2', 365, 1240, 40);
   root.append(art);
   updateMapState();
 }

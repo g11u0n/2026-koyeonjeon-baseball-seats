@@ -7,7 +7,7 @@ const blocks = require(path.join(data, 'blocks.json'));
 const { gates, unitAliases, gateByUnitBlock } = require(path.join(data, 'gates.json'));
 
 const gateIds = new Set(gates.map(({ id }) => id));
-assert.deepEqual([...gateIds].sort(), ['1-3', '2-1', '2-2']);
+assert.deepEqual([...gateIds].sort(), ['1-2', '1-3', '2-1']);
 const byUnit = new Map();
 for (const gate of gates) {
   for (const displayedName of gate.units) {
