@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260927-19';
+const DATA_VERSION = '20260927-20';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -49,7 +49,7 @@ function addGateArrow(root, x, y, angle, direction) {
 }
 function addSubwayExits(root) {
   const station = makeSvg('g', { class: 'subway-station', transform: 'translate(185 235) rotate(180) scale(.9)', 'aria-label': '종합운동장역 5번·6번 출구' });
-  station.append(makeSvg('path', { d: 'M-15 218 L205 176 M39 208 V78 M175 182 V128 L113 140 V18', class: 'subway-line' }));
+  station.append(makeSvg('path', { d: 'M-15 198 H205 M39 198 V78 M175 198 V128 L113 140 V18', class: 'subway-line' }));
   for (const [number, x, y] of [[5, 39, 78], [6, 113, 18]]) {
     station.append(makeSvg('circle', { cx: x, cy: y, r: 16, class: 'subway-exit' }));
     const label = makeSvg('text', { x, y: y + 1, transform: `rotate(180 ${x} ${y})`, class: 'subway-exit-label' });
@@ -99,9 +99,9 @@ function renderMap() {
   addGateLabel(art, '1-3', 380, 145, -40);
   addGateLabel(art, '1-2', 145, 855, 75);
   addGateLabel(art, '2-1', 365, 1240, 40);
-  addGateArrow(art, 300, 235, -35, 'left');
-  addGateArrow(art, 25, 1015, -25, 'left');
-  addGateArrow(art, 350, 1400, 35, 'right');
+  addGateArrow(art, 300, 235, -40, 'left');
+  addGateArrow(art, 25, 1015, 75, 'left');
+  addGateArrow(art, 350, 1400, 40, 'right');
   root.append(art);
   updateMapState();
 }
