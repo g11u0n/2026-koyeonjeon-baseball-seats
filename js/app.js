@@ -49,11 +49,23 @@ function addBlock(root, id, inner, outer, start, end) {
   const mid = (start + end) / 2, [x, y] = polar(450, 455, (inner + outer) / 2, mid);
   const label = makeSvg('text', { x: x.toFixed(1), y: y.toFixed(1), class: `map-label ${ku ? 'ku' : 'neutral'}`, 'data-label': id }); label.textContent = id; root.append(label);
 }
+function addGate(root, label, x, y, rotation, anchorX, anchorY) {
+  const gate = makeSvg('g', { class: 'map-gate' });
+  gate.append(makeSvg('path', { d: `M${x} ${y} L${anchorX} ${anchorY}`, class: 'map-gate-line' }));
+  gate.append(makeSvg('circle', { cx: anchorX, cy: anchorY, r: 4, class: 'map-gate-dot' }));
+  const badge = makeSvg('g', { transform: `translate(${x} ${y}) rotate(${rotation})` });
+  badge.append(makeSvg('rect', { x: -55, y: -16, width: 110, height: 32, rx: 5, class: 'map-gate-badge' }));
+  const text = makeSvg('text', { x: 0, y: 1, class: 'map-gate-label' }); text.textContent = label; badge.append(text);
+  gate.append(badge); root.append(gate);
+}
 function renderMap() {
   const root = $('#seat-map'); root.replaceChildren(); const ids = allBlockIds();
   const configs = { 4: { inner: 342, outer: 405, start: 198, end: 342 }, 3: { inner: 335, outer: 398, start: -12, end: 192 }, 2: { inner: 270, outer: 329, start: -18, end: 198 }, 1: { inner: 205, outer: 264, start: -25, end: 205 } };
   drawField(root);
   for (const level of [4, 3, 2, 1]) { const config = configs[level], span = (config.end - config.start) / ids[level].length; ids[level].forEach((id, index) => addBlock(root, id, config.inner, config.outer, config.start + index * span + .45, config.start + (index + 1) * span - .45)); }
+  addGate(root, '1-3 Gate', 138, 105, -47, 206, 151);
+  addGate(root, '2-1 Gate', 27, 520, -90, 58, 520);
+  addGate(root, '2-2 Gate', 82, 766, -45, 153, 724);
   root.append(makeSvg('rect', { x: 402, y: 7, width: 96, height: 30, rx: 4, class: 'scoreboard' }));
   const boardLabel = makeSvg('text', { x: 450, y: 27, class: 'scoreboard-label', 'text-anchor': 'middle' }); boardLabel.textContent = '전광판'; root.append(boardLabel);
   updateMapState();
