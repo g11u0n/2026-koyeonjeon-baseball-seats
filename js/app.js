@@ -24,7 +24,11 @@ function renderMap() {
     const attrs = { d: item.d };
     for (const key of ['fill', 'stroke', 'stroke-width', 'stroke-miterlimit']) if (item[key]) attrs[key] = item[key];
     if (!item.block) {
-      if (['#EBE3AA', '#BCBC87'].includes(attrs.fill)) attrs.fill = '#d5d7dc';
+      if (['#EBE3AA', '#BCBC87'].includes(attrs.fill)) {
+        attrs.fill = '#d5d7dc';
+        attrs.stroke = '#fff';
+        attrs['stroke-width'] = 2.5;
+      }
       art.append(makeSvg('path', attrs)); continue;
     }
     const id = item.block, ku = isKuBlock(id), alumni = alumniBlocks.has(id), data = state.blocks[id];
