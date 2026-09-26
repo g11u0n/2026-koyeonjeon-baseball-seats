@@ -24,6 +24,11 @@ function gatesForBlock(id) {
   return state.gates.gates.filter((gate) => assigned.has(gate.id));
 }
 function gateBadges(id) { return `<span class="gate-badges">${gatesForBlock(id).map((gate) => `<span class="gate-badge">${escapeHtml(gate.label)}</span>`).join('')}</span>`; }
+function gateUnitBlocks(gateId, displayName) {
+  if (displayName === '교우회석') return [...alumniBlocks];
+  const name = state.gates.unitAliases[displayName] || displayName;
+  return (state.units[name]?.assignments || []).filter((item) => gateForUnitBlock(name, item.block) === gateId).map((item) => item.block);
+}
 function addGateLabel(root, id, x, y, rotation) {
   const label = `${id} Gate`;
   const gate = makeSvg('g', { class: 'map-gate', transform: `translate(${x} ${y}) rotate(${rotation})`, 'data-gate': id, tabindex: '0', role: 'button', 'aria-label': `${gateById(id).label} 입장 단위 보기` });
@@ -91,7 +96,17 @@ function showGate(id) {
   const gate = gateById(id), dialog = $('#gate-dialog');
   state.gate = id;
   dialog.querySelector('#gate-dialog-title').textContent = gate.label;
-  dialog.querySelector('.gate-unit-list').innerHTML = gate.units.map((name) => `<li>${escapeHtml(name)}</li>`).join('');
+  dialog.querySelector('.gate-unit-list').innerHTML = gate.units.map((name) => `<li><button type="button" data-gate-unit="${escapeHtml(name)}">${escapeHtml(name)}</button></li>`).join('');
+  dialog.querySelectorAll('[data-gate-unit]').forEach((button) => {
+    button.onclick = () => {
+      const displayName = button.dataset.gateUnit;
+      const block = gateUnitBlocks(id, displayName)[0];
+      if (!block) return;
+      closeGate();
+      if (displayName === '교우회석') selectBlock(block, true);
+      else selectUnit(state.gates.unitAliases[displayName] || displayName, true, block);
+    };
+  });
   dialog.hidden = false;
   updateMapState();
 }
@@ -105,7 +120,11 @@ function selectUnit(name, updateUrl = true, preferredBlock = null) {
   $('#unit-search').value = name; $('#search-results').hidden = true; $('#unit-search').setAttribute('aria-expanded', 'false');
   const unit = state.units[name];
   updateMapState();
-  if (updateUrl) paramUrl('unit', name);
+  if (updateUrl) {
+    const url = new URL(location.href); url.search = ''; url.searchParams.set('unit', name);
+    if (preferredBlock) url.searchParams.set('block', preferredBlock);
+    history.replaceState(null, '', url);
+  }
   const firstBlock = preferredBlock || unit.assignments[0]?.block;
   if (firstBlock) selectBlock(firstBlock, false);
   else { $('#block-detail').className = 'detail-placeholder'; $('#block-detail').textContent = '상세 좌석 시트에 배정된 좌석이 없습니다.'; }
@@ -256,7 +275,7 @@ async function init() {
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !gateDialog.hidden) closeGate(); });
     $('#unit-search').addEventListener('input', showSearch); $('#unit-search').addEventListener('keydown', (event) => { if (event.key === 'Escape') $('#search-results').hidden = true; if (event.key === 'Enter') { const first = $('#search-results button'); if (first) { event.preventDefault(); first.click(); } } });
     document.addEventListener('click', (event) => { if (!event.target.closest('.search-wrap')) $('#search-results').hidden = true; });
-    const params = new URLSearchParams(location.search), unit = params.get('unit'), block = params.get('block'); if (unit && units[unit]) selectUnit(unit, false); else if (block && (blocks[block] || alumniBlocks.has(block))) selectBlock(block, false);
+    const params = new URLSearchParams(location.search), unit = params.get('unit'), block = params.get('block'); if (unit && units[unit]) selectUnit(unit, false, units[unit].assignments.some((item) => item.block === block) ? block : null); else if (block && (blocks[block] || alumniBlocks.has(block))) selectBlock(block, false);
   } catch (error) { const box = $('#data-alert'); box.hidden = false; box.textContent = `좌석 데이터를 불러오지 못했습니다. 정적 서버로 페이지를 열고 새로고침해 주세요. (${error.message})`; }
 }
 init();
