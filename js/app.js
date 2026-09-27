@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260927-24';
+const DATA_VERSION = '20260927-25';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -56,9 +56,9 @@ function addSubwayExits(root) {
     label.textContent = number; station.append(label);
   }
   root.append(station);
-  const lineNumber = makeSvg('text', { x: 42, y: 56, class: 'subway-line-number' });
+  const lineNumber = makeSvg('text', { x: 86, y: 56, class: 'subway-line-number' });
   lineNumber.textContent = '2호선'; root.append(lineNumber);
-  const name = makeSvg('text', { x: 32, y: 46, class: 'subway-station-name' });
+  const name = makeSvg('text', { x: 32, y: 36, class: 'subway-station-name' });
   name.textContent = '종합운동장역'; root.append(name);
 }
 function renderMap() {
