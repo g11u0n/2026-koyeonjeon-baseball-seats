@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260927-22';
+const DATA_VERSION = '20260927-23';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -44,7 +44,7 @@ function addGateLabel(root, id, x, y, rotation) {
 function addGateArrow(root, x, y, angle, direction) {
   root.append(makeSvg('path', {
     d: direction === 'left' ? 'M-55 0 L-22 -18 L-22 -8 L43 -8 L43 8 L-22 8 L-22 18 Z' : 'M55 0 L22 -18 L22 -8 L-43 -8 L-43 8 L22 8 L22 18 Z',
-    class: 'map-entry-arrow', transform: `translate(${x} ${y}) rotate(${angle})`, 'aria-hidden': 'true'
+    class: 'map-entry-arrow', transform: `translate(${x} ${y}) rotate(${angle}) scale(.8)`, 'aria-hidden': 'true'
   }));
 }
 function addSubwayExits(root) {
@@ -101,9 +101,9 @@ function renderMap() {
   addGateLabel(art, '1-3', 380, 145, -40);
   addGateLabel(art, '1-2', 145, 855, 75);
   addGateLabel(art, '2-1', 365, 1240, 40);
-  addGateArrow(art, 340, 255, -40, 'left');
-  addGateArrow(art, 80, 980, -55, 'left');
-  addGateArrow(art, 405, 1365, 40, 'right');
+  addGateArrow(art, 350, 225, -40, 'left');
+  addGateArrow(art, 110, 945, -55, 'left');
+  addGateArrow(art, 365, 1325, 40, 'right');
   root.append(art);
   updateMapState();
 }
