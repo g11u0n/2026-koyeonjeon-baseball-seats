@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260927-25';
+const DATA_VERSION = '20260927-27';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -49,7 +49,8 @@ function addGateArrow(root, x, y, angle, direction) {
 }
 function addSubwayExits(root) {
   const station = makeSvg('g', { class: 'subway-station', transform: 'translate(152 195) rotate(180) scale(.7)', 'aria-label': '종합운동장역 5번·6번 출구' });
-  station.append(makeSvg('path', { d: 'M-15 198 H205 M39 198 V58 M113 198 V-2', class: 'subway-line' }));
+  station.append(makeSvg('path', { d: 'M39 198 V58 M113 198 V-2', class: 'subway-line' }));
+  station.append(makeSvg('path', { d: 'M-15 198 H205', class: 'subway-bar' }));
   for (const [number, x, y] of [[5, 39, 58], [6, 113, -2]]) {
     station.append(makeSvg('circle', { cx: x, cy: y, r: 16, class: 'subway-exit' }));
     const label = makeSvg('text', { x, y: y + 1, transform: `rotate(180 ${x} ${y})`, class: 'subway-exit-label' });
@@ -58,7 +59,7 @@ function addSubwayExits(root) {
   root.append(station);
   const lineNumber = makeSvg('text', { x: 86, y: 56, class: 'subway-line-number' });
   lineNumber.textContent = '2호선'; root.append(lineNumber);
-  const name = makeSvg('text', { x: 32, y: 36, class: 'subway-station-name' });
+  const name = makeSvg('text', { x: 32, y: 28, class: 'subway-station-name' });
   name.textContent = '종합운동장역'; root.append(name);
 }
 function renderMap() {
