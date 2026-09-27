@@ -19,3 +19,5 @@
 .subway-station{pointer-events:none}.subway-line{fill:none;stroke:#65ad50;stroke-width:24;stroke-linecap:square;stroke-linejoin:miter}.subway-exit{fill:#ffe575;stroke:#5b5552;stroke-width:2.5}.subway-exit-label{fill:#272321;font-size:20px;font-weight:900;text-anchor:middle;dominant-baseline:middle}.subway-line-number{fill:#fff;font-size:17px;font-weight:900;text-anchor:middle;dominant-baseline:middle;pointer-events:none}.map-entry-arrow{fill:#c9153d;stroke:#8f0c32;stroke-width:2;pointer-events:none}.gate-badge{font-size:24px;padding:7px 11px}.assignment .assignment-gate{font-size:13px}
 @media(max-width:700px){.gate-badge{font-size:18px;padding:6px 8px}}
 .subway-station-name{fill:#408c38;font-size:20px;font-weight:900;letter-spacing:-.04em;pointer-events:none}
+.map-viewport{position:relative}
+.map-viewport #station-overlay{position:absolute;inset:0;pointer-events:none}
