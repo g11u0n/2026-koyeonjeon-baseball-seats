@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260928-2';
+const DATA_VERSION = '20260929-1';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -41,10 +41,10 @@ function addGateLabel(root, id, x, y, rotation) {
   gate.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showGate(id); } });
   root.append(gate);
 }
-function addGateArrow(root, x, y, angle, direction, offsetX = 0, offsetY = 42) {
+function addGateArrow(root, id, x, y, angle, direction) {
   root.append(makeSvg('path', {
     d: direction === 'left' ? 'M-55 0 L-22 -18 L-22 -8 L43 -8 L43 8 L-22 8 L-22 18 Z' : 'M55 0 L22 -18 L22 -8 L-43 -8 L-43 8 L22 8 L22 18 Z',
-    class: 'map-entry-arrow', transform: `translate(${x} ${y}) rotate(${angle}) translate(${offsetX} ${offsetY}) scale(.8)`, 'aria-hidden': 'true'
+    class: 'map-entry-arrow', 'data-gate': id, transform: `translate(${x} ${y}) rotate(${angle}) scale(.8)`, 'aria-hidden': 'true'
   }));
 }
 function addSubwayExits(root) {
@@ -103,9 +103,9 @@ function renderMap() {
   addGateLabel(art, '1-3', 380, 145, -40);
   addGateLabel(art, '1-2', 145, 855, 75);
   addGateLabel(art, '2-1', 365, 1240, 40);
-  addGateArrow(art, 380, 145, -40, 'right', 0, -42);
-  addGateArrow(art, 145, 855, 75, 'left');
-  addGateArrow(art, 365, 1240, 40, 'right');
+  addGateArrow(art, '1-3', 350, 100, -38, 'right');
+  addGateArrow(art, '1-2', 110, 650, 75, 'left');
+  addGateArrow(art, '2-1', 545, 1445, 40, 'right');
   root.append(art);
   updateMapState();
 }
@@ -114,6 +114,8 @@ function updateMapState() {
   const selected = state.unit ? new Set(state.units[state.unit]?.assignments.map((item) => item.block) || []) : null;
   document.querySelectorAll('.map-block').forEach((node) => { const id = node.dataset.block; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
   document.querySelectorAll('.map-label').forEach((node) => { const id = node.dataset.label; node.classList.toggle('dim', Boolean(selected) && !selected.has(id)); node.classList.toggle('highlight', Boolean(selected) && selected.has(id)); node.classList.toggle('active', state.block === id); });
+  const selectedGates = state.unit ? new Set((state.units[state.unit]?.assignments || []).map((item) => gateForUnitBlock(state.unit, item.block))) : null;
+  document.querySelectorAll('.map-entry-arrow').forEach((node) => { node.style.display = selectedGates && !selectedGates.has(node.dataset.gate) ? 'none' : ''; });
   document.querySelectorAll('.map-gate').forEach((node) => node.classList.toggle('active', node.dataset.gate === state.gate));
   document.querySelectorAll('.block-list button').forEach((node) => node.classList.toggle('active', node.dataset.block === state.block));
   $('#map-status').textContent = state.unit ? `${selected.size}개 배정 구역` : '고려대학교 48개 구역';
@@ -273,7 +275,7 @@ function setupSeatZoom(container) {
 function contrast(hex) { const rgb = [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16)); return rgb.reduce((sum, value, index) => sum + value * [.299, .587, .114][index], 0) < 135 ? '#fff' : '#26201e'; }
 function showSearch() {
   const query = $('#unit-search').value.trim().toLocaleLowerCase(), results = $('#search-results'); results.replaceChildren();
-  if (!query) { results.hidden = true; $('#unit-search').setAttribute('aria-expanded', 'false'); return; }
+  if (!query) { state.unit = null; updateMapState(); paramUrl('block', state.block); results.hidden = true; $('#unit-search').setAttribute('aria-expanded', 'false'); return; }
   const matches = Object.values(state.units).filter((unit) => unit.name.toLocaleLowerCase().includes(query)).slice(0, 12);
   for (const unit of matches) { const button = document.createElement('button'); button.type = 'button'; button.setAttribute('role', 'option'); const name = document.createElement('span'); name.textContent = unit.name; const count = document.createElement('small'); count.textContent = `${fmt(unit.derivedSeats)}석`; button.append(name, count); button.onclick = () => selectUnit(unit.name, true); results.append(button); }
   if (!matches.length) { const item = document.createElement('div'); item.style.padding = '15px'; item.textContent = '검색 결과가 없습니다.'; results.append(item); }
