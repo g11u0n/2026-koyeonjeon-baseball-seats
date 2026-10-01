@@ -37,7 +37,8 @@ const colorCorrections = {
 };
 const specialAssignments = {
   '219:FFFFF2CC': '세종 총동아리연합회',
-  '417:FFFFE599': 'E-MBA 23기 24기'
+  '417:FFFFE599': 'E-MBA 23기 24기',
+  '420:FFF9CB9C': '자유석'
 };
 const freeColors = new Set(['FF5B0F00', 'FF660000']);
 for (const [sheetName, sheet] of Object.entries(workbook)) {
@@ -71,7 +72,8 @@ for (const [sheetName, sheet] of Object.entries(workbook)) {
       if (!unit) { warn('unmapped-color', `${id} ${number}`, fill); excluded = true; }
     }
     if (unit) counts[unit] = (counts[unit] || 0) + 1;
-    list.push({ seat: number, row: Number(location[2]), column, unit, unavailable, excluded, color: `#${fill.slice(-6)}` });
+    const color = id === '420' && fill === 'FFF9CB9C' ? '#5B0F00' : `#${fill.slice(-6)}`;
+    list.push({ seat: number, row: Number(location[2]), column, unit, unavailable, excluded, color });
   }
   list.sort((a, b) => a.seat - b.seat);
   const unavailableSeats = list.filter(seat => seat.unavailable).length;

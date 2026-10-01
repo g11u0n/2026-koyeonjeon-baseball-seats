@@ -19,3 +19,5 @@
 
 - **sheet-title ? 115**: Sheet name 72 seats; detailed color cells 78 seats.
 - **unit-total ? 경영대학**: Unit summary 693 seats; detailed color cells 699 seats.
+
+- **manual-override ? 420**: KMBA 74 seats reassigned to free seating by request.
