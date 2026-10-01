@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const svgNS = 'http://www.w3.org/2000/svg';
-const DATA_VERSION = '20260929-4';
+const DATA_VERSION = '20261002-1';
 const MAP_SIZE = 900;
 const alumniBlocks = new Set(['412', '413', '414', '415']);
 const baseView = () => ({ x: 0, y: 0, w: MAP_SIZE, h: MAP_SIZE });
@@ -118,7 +118,7 @@ function updateMapState() {
   document.querySelectorAll('.map-entry-arrow').forEach((node) => { node.style.display = selectedGates && !selectedGates.has(node.dataset.gate) ? 'none' : ''; });
   document.querySelectorAll('.map-gate').forEach((node) => node.classList.toggle('active', node.dataset.gate === state.gate));
   document.querySelectorAll('.block-list button').forEach((node) => node.classList.toggle('active', node.dataset.block === state.block));
-  $('#map-status').textContent = state.unit ? `${selected.size}개 배정 구역` : '고려대학교 48개 구역';
+  $('#map-status').textContent = state.unit ? `${selected.size}개 배정 구역` : `고려대학교 ${Object.keys(state.blocks).length + alumniBlocks.size}개 구역`;
   $('#map-hint').textContent = state.block ? `${state.block}구역 선택됨` : '빨간색 구역을 선택하세요';
 }
 function showGate(id) {
@@ -176,7 +176,8 @@ function selectBlock(id, updateUrl = true) {
     ? `<div class="unit-block-nav" aria-label="${escapeHtml(state.unit)} 배정 구역"><strong>${escapeHtml(state.unit)} 배정 구역</strong><div>${unitAssignments.map((item) => `<button type="button" data-unit-block="${item.block}"${item.block === id ? ' class="active" aria-current="true"' : ''}>${item.block}구역 · ${fmt(item.seats)}석</button>`).join('')}</div></div>`
     : '';
   const container = $('#block-detail'); container.className = 'detail-card';
-  container.innerHTML = `<div class="detail-title"><div class="detail-title-main"><div class="detail-heading-row"><h3>${id} BLOCK</h3>${gateBadges(id)}</div><p>${block.level === 4 ? '외야석' : `${block.level}층`}</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div>${unitNav}<div class="stats"><div class="stat"><span>상세 좌석 합계</span><strong>${fmt(block.totalSeats)}</strong></div><div class="stat"><span>배정 좌석</span><strong>${fmt(block.assignedSeats)}</strong></div><div class="stat"><span>불용 좌석</span><strong>${fmt(block.unavailableSeats)}</strong></div></div><h4>배정 단위</h4><div class="assignment-list" style="--allocation-columns:${Math.min(3, block.units.length)}">${allocation}</div><div id="seat-detail" class="seat-detail"></div>`;
+  const excludedStat = block.excludedSeats ? `<div class="stat"><span>배정 외 좌석</span><strong>${fmt(block.excludedSeats)}</strong></div>` : '';
+  container.innerHTML = `<div class="detail-title"><div class="detail-title-main"><div class="detail-heading-row"><h3>${id} BLOCK</h3>${gateBadges(id)}</div><p>${block.level === 4 ? '외야석' : `${block.level}층`}</p></div><button type="button" class="copy-link" id="copy-link">링크 복사</button></div>${unitNav}<div class="stats${block.excludedSeats ? ' has-excluded' : ''}"><div class="stat"><span>상세 좌석 합계</span><strong>${fmt(block.totalSeats)}</strong></div><div class="stat"><span>배정 좌석</span><strong>${fmt(block.assignedSeats)}</strong></div><div class="stat"><span>불용 좌석</span><strong>${fmt(block.unavailableSeats)}</strong></div>${excludedStat}</div><h4>배정 단위</h4><div class="assignment-list" style="--allocation-columns:${Math.min(3, block.units.length)}">${allocation}</div><div id="seat-detail" class="seat-detail"></div>`;
   bindCopyLink(id);
   container.querySelectorAll('button[data-unit-block]').forEach((button) => { button.onclick = () => selectBlock(button.dataset.unitBlock, true); });
   renderSeats(id, $('#seat-detail'));
@@ -186,14 +187,14 @@ function renderSeats(id, container) {
   const list = state.seats[id] || []; if (!list.length) { container.textContent = '좌석 자료가 없습니다.'; return; }
   const minRow = Math.min(...list.map((seat) => seat.row)), maxRow = Math.max(...list.map((seat) => seat.row)), minCol = Math.min(...list.map((seat) => seat.column)), maxCol = Math.max(...list.map((seat) => seat.column));
   const lookup = new Map(list.map((seat) => [`${seat.row}:${seat.column}`, seat])), legend = new Map(); for (const seat of list) if (!seat.unavailable && seat.unit) legend.set(seat.unit, seat.color);
-  const legendHtml = [...legend.entries()].map(([unit, color]) => `<span><i style="background:${color}"></i>${escapeHtml(unit)}</span>`).join('') + (list.some((seat) => seat.unavailable) ? '<span><i class="unavailable"></i>불용 좌석</span>' : '');
+  const legendHtml = [...legend.entries()].map(([unit, color]) => `<span><i style="background:${color}"></i>${escapeHtml(unit)}</span>`).join('') + (list.some((seat) => seat.unavailable) ? '<span><i class="unavailable"></i>불용 좌석</span>' : '') + (list.some((seat) => seat.excluded) ? '<span><i class="excluded"></i>배정 외 좌석</span>' : '');
   container.innerHTML = `<div class="seat-grid-heading"><p>두 손가락으로 확대·축소하실 수 있습니다.</p></div><div class="seat-legend">${legendHtml}</div><div class="seat-grid-wrap" tabindex="0" aria-label="손가락으로 확대·축소할 수 있는 좌석 배치도"><div class="seat-grid-stage"><div class="seat-grid"></div></div></div>`;
   const grid = container.querySelector('.seat-grid'); grid.style.gridTemplateColumns = `36px repeat(${maxCol - minCol + 1},29px)`; const fragment = document.createDocumentFragment();
   for (let row = minRow; row <= maxRow; row++) {
     const label = document.createElement('div'); label.className = 'seat-row-label'; label.textContent = `${row - minRow + 1}열`; fragment.append(label);
     for (let col = minCol; col <= maxCol; col++) {
-      const item = lookup.get(`${row}:${col}`), cell = document.createElement('div'); cell.className = `seat${!item ? ' empty' : item.unavailable ? ' unavailable' : state.unit === item.unit ? ' selected' : ''}`;
-      if (item) { if (!item.unavailable) { cell.textContent = item.seat; cell.style.background = item.color; cell.style.color = contrast(item.color); } cell.title = `${item.seat}번 · ${item.unavailable ? '불용 좌석' : item.unit || '배정 단위 미확인'}`; cell.setAttribute('aria-label', cell.title); }
+      const item = lookup.get(`${row}:${col}`), cell = document.createElement('div'); cell.className = `seat${!item ? ' empty' : item.unavailable ? ' unavailable' : item.excluded ? ' excluded' : state.unit === item.unit ? ' selected' : ''}`;
+      if (item) { if (!item.unavailable) { cell.textContent = item.seat; if (!item.excluded) { cell.style.background = item.color; cell.style.color = contrast(item.color); } } cell.title = `${item.seat}번 · ${item.unavailable ? '불용 좌석' : item.excluded ? '배정 외 좌석' : item.unit || '배정 단위 미확인'}`; cell.setAttribute('aria-label', cell.title); }
       fragment.append(cell);
     }
   }

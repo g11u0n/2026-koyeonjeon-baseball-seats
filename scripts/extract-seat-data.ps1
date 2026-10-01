@@ -1,7 +1,7 @@
 param([string]$Workbook)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-if (-not $Workbook) { $Workbook = (Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..\Jamsil Baseball Stadium') -Filter '*.xlsx' | Select-Object -First 1).FullName }
+if (-not $Workbook) { $Workbook = (Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..') -Filter '*.xlsx' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName }
 $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Workbook))
 function Read-Xml($name) {
   $entry = $zip.GetEntry($name)
@@ -22,7 +22,6 @@ try {
   foreach ($sheet in $bookXml.SelectNodes('//*[local-name()="sheet"]')) {
     $name = $sheet.GetAttribute('name')
     $id = [int]$sheet.GetAttribute('sheetId')
-    if ($id -eq 1) { continue }
     $relId = $sheet.GetAttribute('id', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships')
     $target = $targets[$relId].TrimStart('/')
     if ($target -notmatch '^xl/') { $target = "xl/$target" }
