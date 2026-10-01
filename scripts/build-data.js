@@ -37,8 +37,7 @@ const colorCorrections = {
 };
 const specialAssignments = {
   '219:FFFFF2CC': '세종 총동아리연합회',
-  '417:FFFFE599': 'E-MBA 23기 24기',
-  '420:FFF9CB9C': '자유석'
+  '417:FFFFE599': 'E-MBA 23기 24기'
 };
 const freeColors = new Set(['FF5B0F00', 'FF660000']);
 for (const [sheetName, sheet] of Object.entries(workbook)) {
@@ -62,7 +61,9 @@ for (const [sheetName, sheet] of Object.entries(workbook)) {
     let unavailable = fill === 'FFFF0000';
     let excluded = id === '217' && ['FFFCE5CD', 'FFE6B8AF'].includes(fill);
     if (!unavailable && !excluded) {
-      unit = specialAssignments[`${id}:${fill}`] || colorCorrections[fill] || null;
+      unit = id === '420' && fill === 'FFF9CB9C' && number >= 259 && number <= 349
+        ? '자유석'
+        : specialAssignments[`${id}:${fill}`] || colorCorrections[fill] || null;
       if (!unit && freeColors.has(fill)) unit = '자유석';
       if (!unit) {
         const candidates = byColor.get(fill) || [];
@@ -72,7 +73,7 @@ for (const [sheetName, sheet] of Object.entries(workbook)) {
       if (!unit) { warn('unmapped-color', `${id} ${number}`, fill); excluded = true; }
     }
     if (unit) counts[unit] = (counts[unit] || 0) + 1;
-    const color = id === '420' && fill === 'FFF9CB9C' ? '#5B0F00' : `#${fill.slice(-6)}`;
+    const color = id === '420' && fill === 'FFF9CB9C' && number >= 259 && number <= 349 ? '#5B0F00' : `#${fill.slice(-6)}`;
     list.push({ seat: number, row: Number(location[2]), column, unit, unavailable, excluded, color });
   }
   list.sort((a, b) => a.seat - b.seat);

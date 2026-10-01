@@ -4,15 +4,17 @@ const path = require('node:path');
 const data = path.join(__dirname, '..', 'data');
 const units = require(path.join(data, 'units.json'));
 const blocks = require(path.join(data, 'blocks.json'));
+const seats = require(path.join(data, 'seats.json'));
 const { gates, unitAliases, gateByUnitBlock } = require(path.join(data, 'gates.json'));
 
 const gateIds = new Set(gates.map(({ id }) => id));
 assert.deepEqual([...gateIds].sort(), ['1-2', '1-3', '2-1']);
 assert.equal(gateByUnitBlock.KMBA['223'], '1-2');
-assert.ok(!gateByUnitBlock.KMBA['420']);
-assert.ok(!units.KMBA.assignments.some((item) => item.block === '420'));
-assert.ok(!blocks['420'].units.some((item) => item.name === 'KMBA'));
-assert.equal(blocks['420'].units.at(-1).seats, 107);
+assert.equal(gateByUnitBlock.KMBA['420'], '1-3');
+assert.equal(units.KMBA.assignments.find((item) => item.block === '420').seats, 42);
+assert.equal(blocks['420'].units.find((item) => item.name === 'KMBA').seats, 42);
+assert.equal(blocks['420'].units.at(-1).seats, 65);
+assert.ok(seats['420'].every((seat) => seat.unit !== 'KMBA' || seat.seat < 259 || seat.seat > 349));
 assert.ok(!blocks['216'], '216구역은 고려대학교 배정 구역이 아님');
 const byUnit = new Map();
 for (const gate of gates) {
