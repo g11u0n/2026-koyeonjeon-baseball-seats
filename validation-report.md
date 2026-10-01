@@ -16,3 +16,6 @@
 - **unit-total · 정보보호학부**: 단위별 좌석 169석 / 상세 색상 165석
 - **unit-total · 국제대학**: 단위별 좌석 103석 / 상세 색상 95석
 - **unit-total · 자유석**: 단위별 좌석 278석 / 상세 색상 630석
+
+- **sheet-title ? 115**: Sheet name 72 seats; detailed color cells 78 seats.
+- **unit-total ? 경영대학**: Unit summary 693 seats; detailed color cells 699 seats.
